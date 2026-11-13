@@ -144,16 +144,24 @@ public class DestinationFragment extends BaseSetupFragment {
             }
         };
         results.setAdapter(adapter);
+        int[] requestSeq = {0};
         Runnable search = () -> {
-            items.clear();
-            if (allowCurrent) {
-                items.add(null);
-            }
-            items.addAll(services().places.search(query.getText().toString()));
-            adapter.clear();
-            for (int i = 0; i < items.size(); i++) {
-                adapter.add("");
-            }
+            int seq = ++requestSeq[0];
+            services().places.search(query.getText().toString(), setupVm().knownOrigin(),
+                    com.example.application.core.Callback.success(found -> {
+                if (seq != requestSeq[0] || !isAdded()) {
+                    return; // 더 최근 검색어의 결과만 반영
+                }
+                items.clear();
+                if (allowCurrent) {
+                    items.add(null);
+                }
+                items.addAll(found);
+                adapter.clear();
+                for (int i = 0; i < items.size(); i++) {
+                    adapter.add("");
+                }
+            }));
         };
         query.addTextChangedListener(new TextWatcher() {
             @Override

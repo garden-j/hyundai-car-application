@@ -39,6 +39,10 @@ public class RouteCandidate {
     public Place destination;
     /** 내비게이션에 넘길 경유지(최대 2개, NaviHelper 제약). */
     public List<Place> waypoints = new ArrayList<>();
-    /** 경로 미리보기용 대략적인 선(출발 → 경유 → 도착). */
+    /** 경로 미리보기용 선(서버 경로는 실제 도로 형상, 기기 내 경로는 대략적인 선). */
     public List<GeoPoint> previewPath = new ArrayList<>();
+    /** 서버가 실제 회전 지점으로 만든 브리핑. 없으면 기기에서 추정해 만든다. */
+    public List<BriefingPoint> briefing;
+    /** 경로 출처: "KAKAO"(서버·실제 도로) 또는 null(기기 내 추정). */
+    public String source;
 }

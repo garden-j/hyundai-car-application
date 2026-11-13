@@ -52,8 +52,22 @@ public class SetupViewModel extends ViewModel {
     private int routesForHash;
     private RouteCandidate briefingFor;
 
+    /** 프리셋 추천에 쓰는 현재 날씨(서버가 없거나 실패하면 null). */
+    private com.example.application.data.WeatherRepository.Weather weather;
+
     public PracticeSetup setup() {
         return setup;
+    }
+
+    /** 이미 알고 있는 출발 위치(장소 검색 정렬용). 모르면 null. */
+    public GeoPoint knownOrigin() {
+        if (setup.destination != null && setup.destination.origin != null) {
+            return setup.destination.origin.point;
+        }
+        if (setup.manualOrigin != null) {
+            return setup.manualOrigin.point;
+        }
+        return origin;
     }
 
     /** 새 연습을 시작한다. 오늘의 추천에서 왔으면 미리 채운다. */
@@ -68,6 +82,7 @@ public class SetupViewModel extends ViewModel {
         applyResult.setValue(null);
         checklist.setValue(null);
         readiness = null;
+        weather = null;
         userChecked.clear();
         routesForHash = 0;
         briefingFor = null;
@@ -219,7 +234,27 @@ public class SetupViewModel extends ViewModel {
         return checklist;
     }
 
+    /** 프리셋 화면 전에 날씨를 미리 받아 둔다(체크리스트 화면에서 호출). */
+    private void prefetchWeather() {
+        GeoPoint at = knownOrigin();
+        if (at == null || weather != null) {
+            return;
+        }
+        sl.weather.current(at, new Callback<com.example.application.data.WeatherRepository.Weather>() {
+            @Override
+            public void onSuccess(com.example.application.data.WeatherRepository.Weather value) {
+                weather = value;
+            }
+
+            @Override
+            public void onError(Exception e) {
+                // 날씨 없이 목표·시간만으로 추천
+            }
+        });
+    }
+
     public void refreshChecklist() {
+        prefetchWeather();
         if (!sl.consents.isGranted(PermissionType.VEHICLE)) {
             readiness = null;
             evaluateChecklist();
@@ -257,8 +292,9 @@ public class SetupViewModel extends ViewModel {
 
     public void recommendPreset() {
         if (setup.preset == null) {
-            // 날씨 API는 백엔드 연동 후 연결. 지금은 연습 환경 선택(우천)만 반영
-            PresetRecommender.Recommendation r = PresetRecommender.recommend(setup, sl.profiles.get(), null, null);
+            Float temp = weather == null ? null : weather.temperatureC;
+            Boolean raining = weather == null ? null : (weather.raining || weather.snowing);
+            PresetRecommender.Recommendation r = PresetRecommender.recommend(setup, sl.profiles.get(), temp, raining);
             setup.preset = r.preset;
             presetReason = r.reason;
         }

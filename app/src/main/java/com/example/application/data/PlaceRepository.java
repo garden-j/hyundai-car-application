@@ -1,7 +1,10 @@
 package com.example.application.data;
 
+import com.example.application.core.Callback;
+import com.example.application.data.remote.ApiClient;
 import com.example.application.model.GeoPoint;
 import com.example.application.model.Place;
+import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,14 +13,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 자주 가는 곳·장소 검색. 장소 검색 API(백엔드 프록시) 연동 전까지는
- * PT 시연 장소(강남대로) 주변 예시 장소를 사용한다.
+ * 자주 가는 곳·장소 검색. 서버가 있으면 카카오 장소 검색(백엔드 경유)을 쓰고,
+ * 없거나 실패하면 PT 시연 장소(강남대로) 주변 예시 장소에서 찾는다.
  */
 public class PlaceRepository {
     private final Map<String, Place> frequent = new LinkedHashMap<>();
     private final List<Place> catalog;
+    private final ApiClient api;
 
     public PlaceRepository() {
+        this(null);
+    }
+
+    public PlaceRepository(ApiClient api) {
+        this.api = api;
         frequent.put("집", new Place("집", "서울 강남구 역삼동 (예시)", new GeoPoint(37.5006, 127.0364)));
         frequent.put("직장", new Place("직장", "서울 강남구 선릉역 인근 (예시)", new GeoPoint(37.5045, 127.0490)));
         frequent.put("학교", new Place("학교", "서울 서초구 서울교대 (예시)", new GeoPoint(37.4900, 127.0144)));
@@ -36,6 +45,37 @@ public class PlaceRepository {
         return frequent;
     }
 
+    /** 장소 검색(비동기). near가 있으면 가까운 순. 검색어가 비면 예시 장소 목록. */
+    public void search(String query, GeoPoint near, Callback<List<Place>> callback) {
+        if (api == null || query == null || query.trim().isEmpty()) {
+            callback.onSuccess(search(query));
+            return;
+        }
+        StringBuilder path = new StringBuilder("/api/v1/places/search?q=");
+        try {
+            path.append(java.net.URLEncoder.encode(query.trim(), "UTF-8"));
+        } catch (java.io.UnsupportedEncodingException e) {
+            callback.onSuccess(search(query));
+            return;
+        }
+        if (near != null) {
+            path.append(String.format(java.util.Locale.US, "&lat=%.6f&lng=%.6f", near.latitude, near.longitude));
+        }
+        api.get(path.toString(), new TypeToken<List<Place>>() {
+        }.getType(), new Callback<List<Place>>() {
+            @Override
+            public void onSuccess(List<Place> value) {
+                callback.onSuccess(value == null || value.isEmpty() ? search(query) : value);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                callback.onSuccess(search(query));
+            }
+        });
+    }
+
+    /** 기기 내 예시 장소에서 찾기. */
     public List<Place> search(String query) {
         List<Place> out = new ArrayList<>();
         String q = query == null ? "" : query.replace(" ", "");

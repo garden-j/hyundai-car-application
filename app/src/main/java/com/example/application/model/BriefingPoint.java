@@ -7,7 +7,7 @@ public class BriefingPoint {
         MERGE("합류 구간"),
         LANE_CHANGE_PREP("차선 변경 준비"),
         U_TURN("유턴 지점"),
-        LEFT_TURN("비보호 좌회전"),
+        LEFT_TURN("좌회전 구간"),
         PARKING("주차 구간");
 
         public final String label;

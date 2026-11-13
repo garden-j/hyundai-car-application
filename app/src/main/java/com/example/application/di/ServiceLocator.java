@@ -27,6 +27,10 @@ import com.example.application.data.PlaceRepository;
 import com.example.application.data.ProfileRepository;
 import com.example.application.data.RouteRepository;
 import com.example.application.data.SessionStore;
+import com.example.application.data.WeatherRepository;
+import com.example.application.data.remote.ApiClient;
+import com.example.application.data.remote.RemoteRouteRepository;
+import com.example.application.BuildConfig;
 
 /**
  * 수동 의존성 주입. Pleos 시스템 서비스가 있으면 실제 SDK, 없으면 Fake/안드로이드 기본 구현을 연결한다.
@@ -46,6 +50,7 @@ public final class ServiceLocator {
     public final SessionStore sessions;
     public final RouteRepository routes;
     public final PlaceRepository places;
+    public final WeatherRepository weather;
     public PresetController presets;
 
     private ServiceLocator(Context context) {
@@ -65,8 +70,13 @@ public final class ServiceLocator {
         profiles = new ProfileRepository(store);
         consents = new ConsentRepository(store);
         sessions = new SessionStore(store);
-        routes = new LocalRouteRepository();
-        places = new PlaceRepository();
+        // 서버 주소(local.properties의 api.baseUrl)가 있으면 서버 경로 추천·장소 검색·날씨를 쓰고,
+        // 서버가 응답하지 않으면 각 저장소가 기기 내 로직으로 대체한다.
+        ApiClient api = BuildConfig.API_BASE_URL.isEmpty() ? null : new ApiClient(BuildConfig.API_BASE_URL);
+        Log.i(TAG, "api server: " + (api == null ? "none (on-device only)" : BuildConfig.API_BASE_URL));
+        routes = api == null ? new LocalRouteRepository() : new RemoteRouteRepository(api, new LocalRouteRepository());
+        places = new PlaceRepository(api);
+        weather = new WeatherRepository(api);
         presets = new PresetController(vehicle);
     }
 

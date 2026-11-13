@@ -56,6 +56,10 @@
 ./gradlew :app:connectedDebugAndroidTest    # Pleos 에뮬레이터 연동·UI 스모크 테스트 3개
 ```
 
+## 백엔드
+
+`backend/` 폴더의 Spring Boot 서버가 카카오모빌리티 길찾기로 **실제 도로 기반 연습 경로와 회전 지점 브리핑**을, 카카오 로컬로 장소 검색을, 기상청으로 현재 날씨를 제공합니다. 자세한 내용은 [`backend/README.md`](backend/README.md)를 보세요.
+
 ## 구조
 
 ```
@@ -77,7 +81,7 @@ app/src/main/java/com/example/application/
 └── ui/                                # 화면(Fragment): onboarding · home · setup · depart · settings
 ```
 
-- 경로 추천·브리핑은 `RouteRepository` 인터페이스 뒤에 있어, 백엔드가 준비되면 원격 구현으로 바꿀 수 있습니다(현재는 기기 내 `LocalRouteRepository`).
+- 경로 추천·장소 검색·날씨는 `local.properties`의 `api.baseUrl`이 있으면 **백엔드(`backend/`)** 를 쓰고, 없거나 서버가 응답하지 않으면 기기 내 로직으로 자동 전환합니다. 백엔드 실행 방법은 [`backend/README.md`](backend/README.md)를 보세요.
 - 디자인은 와이어프레임 레이아웃만 따랐고, 색·글자 크기는 `res/values`의 토큰만 바꾸면 됩니다.
 
 ## Pleos SDK 사용 시 확인한 점 (문서와 다른 부분)
