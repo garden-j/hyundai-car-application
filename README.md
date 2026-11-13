@@ -1,0 +1,91 @@
+# 초보 운전 연습 (Pleos Connect 차량용 앱)
+
+초보 운전자가 **연습 목표·긴장도에 맞는 연습 경로**를 고르고, 출발 전에 **복잡 구간 브리핑·준비 체크리스트·연습 모드 차량 환경**까지 갖춘 뒤 출발하도록 돕는 Pleos Connect 앱입니다.
+
+> 현대자동차그룹 차량용 앱 개발 공모전 출품작 · Android(Java) · Pleos Connect SDK
+
+## 현재 구현 범위 (2단계: 출발 전 흐름)
+
+| 흐름 | 화면 | 사용 SDK |
+|---|---|---|
+| 온보딩 | 권한 동의(목적별) → 비동의 시 기능 제한 안내 → 운전 경력 → 어려운 점 → 안내량 | – |
+| 홈 | 오늘의 추천 연습, 차량 상태, 주행 가능 거리, 실내 온도 | Vehicle |
+| 연습 설정 | 목표 유형(복수) → 선택한 유형의 세부 설정(기술 / 거리·시간 / 목적지 / 주행 환경) → 난이도·지역 익숙함 → 긴장도·이유 | STT(말로 답하기) |
+| 경로 추천 | 후보 3개(넓은 길 / 최단 / 목표 연습), 추천 이유·난이도 점수 근거, 선택 경로를 내비에 전달 | FusedLocation, NaviHelper |
+| 복잡 구간 브리핑 | 주행 순서대로 구간 목록 + 경로 미리보기 + 음성 브리핑, 다시 듣기 | TTS |
+| 준비 체크리스트 | 안전벨트·문·연료/배터리 자동 확인, 나머지는 직접 확인, 필수 미완료 시 출발 차단 | Vehicle |
+| 연습 모드 프리셋 | 목표·날씨·시간 기반 4종 추천 → 항목 수정 → 적용 전 설정 저장 → 일괄 적용 → 실패 항목 안내 | Vehicle(HVAC·Window·SteeringWheel) |
+| 출발 | 설정 요약(주행 중 화면은 다음 단계) | – |
+
+긴장도 4 이상이면 **난이도를 한 단계 낮춰 경로를 추천**하고 **안내 수준을 한 단계 올립니다**(유저플로우 반영).
+
+## 실행 방법
+
+1. Android Studio(Gradle 8+ / AGP 9.5) · JDK 17 이상
+2. Pleos Connect Emulator **v2.1.0** (Automotive, API 34, RAM 4GB, Cold boot) 설치
+   - SDK Update Site: `https://nexus-playground.pleos.ai/repository/raw-releases/connect-avd/2.x/crp-arm64-sys-img.xml` (Mac)
+3. 프로젝트 열기 → `app` 실행 (Pleos 에뮬레이터 또는 일반 에뮬레이터)
+4. (선택) `local.properties`에 Pleos Playground 내 프로젝트의 SDK 클라이언트 정보를 넣으면 TTS/STT가 HYBRID 모드로 동작합니다.
+   ```properties
+   pleos.clientId=...
+   pleos.clientSecret=...
+   ```
+   비워 두면 ON_DEVICE 모드로 시작합니다.
+
+### 테스트 환경 · 설정
+
+| 항목 | 값 |
+|---|---|
+| 에뮬레이터 | Pleos Connect Emulator v2.1.0 (Android 14 / API 34) |
+| 화면 | 2560 × 1440, 160dpi (앱은 멀티 윈도 오른쪽 영역에 표시) |
+| minSdk / compileSdk | 28 / 37 |
+
+- **위치 설정 필수**: Pleos 에뮬레이터의 FusedLocation은 기본 GPS 위치(미국 마운틴뷰)를 돌려주고, 내비 엔진은 서울 근처를 씁니다. 에뮬레이터 Extended Controls › Location에서 서울 좌표를 지정하거나 아래 명령을 실행하세요.
+  ```bash
+  adb emu geo fix 127.0947 37.4127
+  ```
+  위치가 목적지에서 100km 넘게 떨어져 있으면 앱이 출발지를 직접 고르도록 안내합니다.
+- **안전벨트**: 에뮬레이터 차량의 운전석 안전벨트가 기본으로 미착용이라 체크리스트에서 출발이 막힙니다. Virtual Console에서 착용 상태로 바꿔 주세요.
+- **음성**: 에뮬레이터에는 온디바이스 TTS 엔진이 없어 ON_DEVICE 모드에서는 음성이 나오지 않습니다(화면 안내는 정상). HYBRID 모드(위 4번)로 확인하세요.
+- Pleos 시스템 서비스가 없는 기기에서는 가상 차량·내비·위치(시연 장소 좌표)로 자동 전환되며, 오른쪽 위에 "시뮬레이션 모드"가 표시됩니다.
+
+### 테스트
+
+```bash
+./gradlew :app:testDebugUnitTest            # 도메인 로직 단위 테스트 37개
+./gradlew :app:connectedDebugAndroidTest    # Pleos 에뮬레이터 연동·UI 스모크 테스트 3개
+```
+
+## 구조
+
+```
+app/src/main/java/com/example/application/
+├── App.java · MainActivity.java       # 앱 진입점(SDK 초기화), 단일 Activity
+├── di/ServiceLocator.java             # 의존성 구성: Pleos 서비스 유무에 따라 실제/가상 구현 선택
+├── core/
+│   ├── pleos/                         # Pleos SDK 래퍼(인터페이스 + Pleos 구현 + Fake 구현)
+│   │   ├── vehicle/  navi/  location/  voice/
+│   ├── vehiclecontrol/                # 프리셋 적용(적용 전 저장 → 일괄 적용 → 결과 보고)
+│   └── Callback · MainThread
+├── domain/                            # Android 의존 없는 규칙(단위 테스트 대상)
+│   ├── SetupFlow                      # 단계 순서·검증
+│   ├── RouteCandidateGenerator · RouteDifficultyScorer · BriefingGenerator
+│   ├── PresetRecommender · PresetTargets · ChecklistEvaluator
+│   └── VoiceCommandParser · VoiceVocabulary · TodayRecommendation
+├── data/                              # 로컬 저장(프로필·동의 이력·세션), 경로/장소 저장소
+├── model/                             # 도메인 모델
+└── ui/                                # 화면(Fragment): onboarding · home · setup · depart · settings
+```
+
+- 경로 추천·브리핑은 `RouteRepository` 인터페이스 뒤에 있어, 백엔드가 준비되면 원격 구현으로 바꿀 수 있습니다(현재는 기기 내 `LocalRouteRepository`).
+- 디자인은 와이어프레임 레이아웃만 따랐고, 색·글자 크기는 `res/values`의 토큰만 바꾸면 됩니다.
+
+## Pleos SDK 사용 시 확인한 점 (문서와 다른 부분)
+
+- `TextToSpeech`/`SpeechToText`는 `pleos.car.permission.TTS_SERVICE` / `STT_SERVICE` 선언이 필요합니다(없으면 `initialize()`에서 SecurityException).
+- `pleos.car.permission.FUSED_LOCATION`은 **dangerous** 보호 수준이라 런타임 권한 요청이 필요합니다.
+- 공조 온도·풍량·전원은 운전석 단독 영역(0x1)이 아니라 차량별 공조 구역을 써야 합니다 → `check…Capabilities`로 운전석을 포함하는 영역을 찾아 사용합니다.
+- 공조 전원이 꺼져 있으면 온도를 읽을 수 없습니다(`PropertyNotAvailableException`). 프리셋은 공조 전원을 먼저 켭니다.
+- `EV_BATTERY_LEVEL`은 % 가 아니라 Wh 단위입니다 → `getEvBatteryCapacity()`로 나눠 %로 표시합니다. `RANGE_REMAINING`은 미터 단위입니다.
+- 에뮬레이터 차량은 전기차라 `FUEL_PERCENT`가 지원되지 않습니다.
+- Pleos 런처가 앱을 여러 번 실행할 수 있어 `MainActivity`는 `singleTask`입니다.

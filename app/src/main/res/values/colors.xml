@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 와이어프레임 기준 무채색 팔레트. 디자인 시안이 나오면 이 값만 바꾼다. -->
+    <color name="bg">#FFFAFAFA</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="surface_muted">#FFF2F2F2</color>
+    <color name="outline">#FFDDDDDD</color>
+    <color name="text_primary">#FF111111</color>
+    <color name="text_secondary">#FF555555</color>
+    <color name="text_hint">#FF888888</color>
+    <color name="accent">#FF1B2333</color>
+    <color name="accent_on">#FFFFFFFF</color>
+    <color name="positive">#FF2E7D32</color>
+    <color name="attention">#FFE65100</color>
+    <color name="point_start">#FF5B9BF2</color>
+    <color name="point_end">#FFC6E04A</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

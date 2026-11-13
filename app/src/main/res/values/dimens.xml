@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 차량 화면: 팔 길이 거리에서 읽히도록 큰 글자, 장갑 낀 손가락도 누를 수 있는 터치 영역 -->
+    <dimen name="text_title">56sp</dimen>
+    <dimen name="text_headline">34sp</dimen>
+    <dimen name="text_body">26sp</dimen>
+    <dimen name="text_caption">21sp</dimen>
+    <dimen name="touch_min">84dp</dimen>
+    <dimen name="gap">16dp</dimen>
+    <dimen name="gap_large">32dp</dimen>
+    <dimen name="corner">20dp</dimen>
+</resources>

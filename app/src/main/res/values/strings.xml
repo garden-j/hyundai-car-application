@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">초보 운전 연습</string>
+    <string name="back">이전</string>
+    <string name="home">홈</string>
+    <string name="next">다음</string>
+    <string name="mic">말로 답하기</string>
+    <string name="simulated_banner">시뮬레이션 모드 · Pleos 서비스 없음</string>
+</resources>
