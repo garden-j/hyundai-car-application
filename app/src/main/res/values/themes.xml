@@ -1,84 +1,105 @@
 <resources>
+    <!--
+      Figma '연습주행_가로세로' 기준. 글꼴은 Pleos 시스템 글꼴 Asta Sans(시스템 이름 "pretendard").
+      이 패밀리는 weight 600 = Bold, 800 = ExtraBold 파일에 연결돼 있다.
+    -->
     <style name="Theme.Application" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="colorPrimary">@color/accent</item>
-        <item name="colorPrimaryVariant">@color/accent</item>
+        <item name="colorPrimary">@color/button_filled</item>
+        <item name="colorPrimaryVariant">@color/button_filled</item>
         <item name="colorOnPrimary">@color/accent_on</item>
-        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSecondary">@color/button_filled</item>
         <item name="colorOnSecondary">@color/accent_on</item>
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:fontFamily">pretendard</item>
     </style>
 
+    <!-- Headline M 56 · ExtraBold -->
     <style name="Text.Title" parent="">
+        <item name="android:fontFamily">pretendard</item>
+        <item name="android:textFontWeight">800</item>
         <item name="android:textSize">@dimen/text_title</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:lineHeight">70sp</item>
         <item name="android:textColor">@color/text_primary</item>
-        <item name="android:lineSpacingMultiplier">1.15</item>
     </style>
 
+    <!-- Title L 40 · ExtraBold (앱 바 제목, 카드 제목) -->
     <style name="Text.Headline" parent="">
+        <item name="android:fontFamily">pretendard</item>
+        <item name="android:textFontWeight">800</item>
         <item name="android:textSize">@dimen/text_headline</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:lineHeight">52sp</item>
         <item name="android:textColor">@color/text_primary</item>
     </style>
 
+    <!-- Body L 30 · Bold, 보조 색 (부제목, 섹션 제목, 오른쪽 값) -->
+    <style name="Text.Subtitle" parent="">
+        <item name="android:fontFamily">pretendard</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:textSize">@dimen/text_subtitle</item>
+        <item name="android:lineHeight">40sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+    <!-- Title S 32 · Bold (목록 항목, 선택지, 버튼) -->
     <style name="Text.Body" parent="">
+        <item name="android:fontFamily">pretendard</item>
+        <item name="android:textFontWeight">600</item>
         <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:lineHeight">43sp</item>
         <item name="android:textColor">@color/text_primary</item>
     </style>
 
+    <!-- Label M 24 · Regular, 보조 색 (설명, 단계 표시, 음성 안내) -->
     <style name="Text.Caption" parent="">
+        <item name="android:fontFamily">pretendard</item>
+        <item name="android:textFontWeight">400</item>
         <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:lineHeight">32sp</item>
         <item name="android:textColor">@color/text_secondary</item>
     </style>
 
-    <style name="Text.Section" parent="Text.Body">
-        <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:layout_marginTop">@dimen/gap</item>
-        <item name="android:layout_marginBottom">8dp</item>
-    </style>
+    <style name="Text.Section" parent="Text.Subtitle" />
 
-    <style name="Button.Primary" parent="Widget.MaterialComponents.Button.UnelevatedButton">
+    <!-- 버튼(Large): 높이 100, 좌우 40, 모서리 32, 글자 32 Bold -->
+    <style name="Button.Primary" parent="">
+        <item name="android:background">@drawable/bg_button_filled</item>
         <item name="android:minHeight">@dimen/touch_min</item>
+        <item name="android:minWidth">140dp</item>
+        <item name="android:paddingStart">40dp</item>
+        <item name="android:paddingEnd">40dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:fontFamily">pretendard</item>
+        <item name="android:textFontWeight">600</item>
         <item name="android:textSize">@dimen/text_body</item>
-        <item name="cornerRadius">@dimen/corner</item>
-        <item name="android:insetTop">0dp</item>
-        <item name="android:insetBottom">0dp</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
     </style>
 
-    <style name="Button.Secondary" parent="Widget.MaterialComponents.Button.OutlinedButton">
-        <item name="android:minHeight">@dimen/touch_min</item>
-        <item name="android:textSize">@dimen/text_body</item>
+    <style name="Button.Secondary" parent="Button.Primary">
+        <item name="android:background">@drawable/bg_button_basic</item>
         <item name="android:textColor">@color/text_primary</item>
-        <item name="cornerRadius">@dimen/corner</item>
-        <item name="android:insetTop">0dp</item>
-        <item name="android:insetBottom">0dp</item>
     </style>
 
-    <style name="Button.Nav" parent="Widget.MaterialComponents.Button.OutlinedButton">
-        <item name="android:minHeight">56dp</item>
-        <item name="android:minWidth">56dp</item>
-        <item name="android:textSize">@dimen/text_caption</item>
-        <item name="android:textColor">@color/text_primary</item>
-        <item name="cornerRadius">28dp</item>
-    </style>
-
-    <style name="Chip.Choice" parent="Widget.MaterialComponents.Chip.Choice">
-        <item name="android:textSize">@dimen/text_body</item>
-        <item name="chipMinHeight">56dp</item>
-        <item name="chipStartPadding">16dp</item>
-        <item name="chipEndPadding">16dp</item>
-        <item name="android:checkable">true</item>
+    <!-- 앱 바 뒤로·홈: 80×80, 테두리 2, 모서리 20, 아이콘 48 -->
+    <style name="Button.Nav" parent="">
+        <item name="android:layout_width">@dimen/nav_button</item>
+        <item name="android:layout_height">@dimen/nav_button</item>
+        <item name="android:background">@drawable/bg_nav_button</item>
+        <item name="android:scaleType">center</item>
     </style>
 
     <style name="Card" parent="Widget.MaterialComponents.CardView">
         <item name="cardCornerRadius">@dimen/corner</item>
         <item name="cardElevation">0dp</item>
-        <item name="strokeColor">@color/outline</item>
-        <item name="strokeWidth">1dp</item>
+        <item name="strokeWidth">0dp</item>
         <item name="cardBackgroundColor">@color/surface</item>
     </style>
 </resources>

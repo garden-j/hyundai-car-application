@@ -29,14 +29,19 @@ public class GuidanceLevelFragment extends BaseStepFragment {
         DriverProfile p = services().profiles.get();
         Set<GuidanceLevel> selected = EnumSet.of(p.guidanceLevelOrDefault());
         LinearLayout list = ContentScrollBinding.inflate(inflater, frame.content, true).list;
-        Choices.addCardGrid(list, Arrays.asList(GuidanceLevel.values()), selected, true, 3, () -> {
+        // Figma L/05: 안내 단계(Segmented) + 안내 예시 카드
+        Choices.addChipSection(list, "안내 단계", Arrays.asList(GuidanceLevel.values()), selected, true, () -> {
             if (!selected.isEmpty()) {
                 showExample(selected.iterator().next(), true);
             }
         });
-        list.addView(Choices.sectionTitle(requireContext(), "안내 예시 (누르면 들어요)"));
+        list.addView(Choices.sectionTitle(requireContext(), "안내 예시"));
         example = new TextView(requireContext());
         example.setTextAppearance(R.style.Text_Body);
+        example.setBackgroundResource(R.drawable.bg_card);
+        int pad = Choices.dp(requireContext(), 32);
+        example.setPadding(pad, pad, pad, pad);
+        example.setContentDescription("안내 예시, 누르면 들어요");
         example.setOnClickListener(v -> {
             if (!selected.isEmpty()) {
                 showExample(selected.iterator().next(), true);

@@ -1,34 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 큰 선택 카드(목표 유형·안내 단계 등). 선택되면 테두리가 진해진다. -->
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    style="@style/Card"
-    android:layout_width="0dp"
+<!-- Figma OptionCard: p32, 모서리 32, 제목 40 ExtraBold + 원형 체크 48, 설명 24. 선택 시 배경 #DBDEE3 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    android:checkable="true"
+    android:background="@drawable/bg_option"
     android:clickable="true"
     android:focusable="true"
-    app:checkedIconTint="@color/accent">
+    android:orientation="vertical"
+    android:padding="32dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="120dp"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
         <TextView
             android:id="@+id/card_title"
             style="@style/Text.Headline"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:id="@+id/card_desc"
-            style="@style/Text.Caption"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" />
+            android:layout_weight="1"
+            tools:text="넓은 길로 가요" />
+
+        <FrameLayout
+            android:id="@+id/card_check"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/bg_radio"
+            android:duplicateParentState="true">
+
+            <ImageView
+                android:id="@+id/card_check_icon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_check_radio"
+                android:visibility="gone" />
+        </FrameLayout>
     </LinearLayout>
-</com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/card_desc"
+        style="@style/Text.Caption"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        tools:text="차선 변경이 적고 도로가 넓어요" />
+</LinearLayout>

@@ -1,58 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 공통 목록 행: [배지] 제목/설명 [오른쪽 값]. 브리핑·체크리스트·프리셋·권한 목록에서 재사용 -->
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    style="@style/Card"
+<!--
+  목록 행(Figma List Row): 위아래 24, [번호 배지] 제목 32 Bold / 설명 24 · 오른쪽 값 30 Bold 보조색.
+  여러 행은 Rows가 흰 카드(모서리 32, 좌우 32) 하나에 구분선과 함께 묶는다.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginVertical="6dp"
-    android:clickable="true"
-    android:focusable="true">
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="24dp"
+    android:paddingBottom="24dp">
+
+    <TextView
+        android:id="@+id/row_badge"
+        style="@style/Text.Body"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginEnd="24dp"
+        android:background="@drawable/bg_pill"
+        android:gravity="center" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:minHeight="@dimen/touch_min"
-        android:orientation="horizontal"
-        android:padding="16dp">
+        android:layout_weight="1"
+        android:orientation="vertical">
 
         <TextView
-            android:id="@+id/row_badge"
+            android:id="@+id/row_title"
             style="@style/Text.Body"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="16dp"
-            android:background="@drawable/bg_pill"
-            android:gravity="center"
-            android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/row_title"
-                style="@style/Text.Body"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/row_subtitle"
-                style="@style/Text.Caption"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <TextView
-            android:id="@+id/row_trailing"
-            style="@style/Text.Body"
-            android:layout_width="wrap_content"
+            android:id="@+id/row_subtitle"
+            style="@style/Text.Caption"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:textColor="@color/text_secondary" />
+            android:layout_marginTop="4dp" />
     </LinearLayout>
-</com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/row_trailing"
+        style="@style/Text.Subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:gravity="end" />
+</LinearLayout>

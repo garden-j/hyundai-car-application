@@ -1,14 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 와이어프레임 기준 무채색 팔레트. 디자인 시안이 나오면 이 값만 바꾼다. -->
-    <color name="bg">#FFFAFAFA</color>
-    <color name="surface">#FFFFFFFF</color>
-    <color name="surface_muted">#FFF2F2F2</color>
-    <color name="outline">#FFDDDDDD</color>
-    <color name="text_primary">#FF111111</color>
-    <color name="text_secondary">#FF555555</color>
-    <color name="text_hint">#FF888888</color>
-    <color name="accent">#FF1B2333</color>
+    <!-- Figma '연습주행_가로세로' pleos 토큰 -->
+    <color name="pleos_bg">#FFF7F8FA</color>
+    <color name="pleos_surface">#FFFFFFFF</color>
+    <color name="pleos_ink">#FF131417</color>
+    <color name="pleos_ink_64">#A3131417</color>
+    <color name="pleos_ink_20">#33131417</color>
+    <color name="pleos_ink_10">#1A131417</color>
+    <color name="pleos_ink_05">#0D131417</color>
+    <color name="pleos_selected">#FFDBDEE3</color>
+    <color name="pleos_accent">#FF0064FF</color>
+    <color name="button_filled">#FF44464E</color>
+    <color name="button_filled_disabled">#6644464E</color>
+
+    <!-- 앱 공통 이름(위 토큰을 가리킴) -->
+    <color name="bg">@color/pleos_bg</color>
+    <color name="surface">@color/pleos_surface</color>
+    <color name="surface_muted">@color/pleos_ink_05</color>
+    <color name="outline">@color/pleos_ink_10</color>
+    <color name="text_primary">@color/pleos_ink</color>
+    <color name="text_secondary">@color/pleos_ink_64</color>
+    <color name="text_hint">@color/pleos_ink_64</color>
+    <color name="accent">@color/pleos_ink</color>
     <color name="accent_on">#FFFFFFFF</color>
     <color name="positive">#FF2E7D32</color>
     <color name="attention">#FFE65100</color>

@@ -33,9 +33,26 @@ public class TensionFragment extends BaseSetupFragment {
         return SetupStep.TENSION;
     }
 
+    /** 척도 양 끝 설명(왼쪽·오른쪽, Label M 24). */
+    private View scaleLabels(String left, String right) {
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, Choices.dp(requireContext(), 12), 0, 0);
+        TextView l = new TextView(requireContext());
+        l.setTextAppearance(R.style.Text_Caption);
+        l.setText(left);
+        TextView r = new TextView(requireContext());
+        r.setTextAppearance(R.style.Text_Caption);
+        r.setText(right);
+        r.setGravity(android.view.Gravity.END);
+        row.addView(l, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(r, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        return row;
+    }
+
     @Override
     protected View onCreateContent(LayoutInflater inflater, ViewGroup container) {
-        setTitle("지금 얼마나\n긴장되세요?", "사용자님의 상태를 알려 주세요.");
+        setTitle("지금 얼마나 긴장되세요?", "지금 상태를 알려 주세요.");
         enableVoice("3 정도야");
         setPrimary("다음", this::goNext);
         level.clear();
@@ -43,8 +60,9 @@ public class TensionFragment extends BaseSetupFragment {
             level.add(setup().tension);
         }
         LinearLayout list = scrollList(inflater);
-        refreshLevel = Choices.addChipSection(list, "1 편안해요  ·  5 많이 긴장돼요",
+        refreshLevel = Choices.addChipSection(list, "긴장 정도",
                 Arrays.asList(1, 2, 3, 4, 5), String::valueOf, level, true, this::sync);
+        list.addView(scaleLabels("편안해요", "많이 긴장돼요"));
         refreshReasons = Choices.addChipSection(list, "긴장되는 이유가 있다면 골라 주세요 (선택)",
                 Arrays.asList(TensionReason.values()), setup().tensionReasons, false, null);
         note = new TextView(requireContext());

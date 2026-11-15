@@ -9,7 +9,7 @@ import android.widget.LinearLayout;
 import androidx.core.content.ContextCompat;
 
 import com.example.application.R;
-import com.example.application.databinding.ItemRowBinding;
+import com.example.application.databinding.ItemCheckCardBinding;
 import com.example.application.domain.ChecklistEvaluator;
 import com.example.application.domain.ChecklistItem;
 import com.example.application.domain.SetupStep;
@@ -32,12 +32,16 @@ public class ChecklistFragment extends BaseSetupFragment {
         return SetupStep.CHECKLIST;
     }
 
+    /** 디자인(Figma L/17)에 있는 항목. 나머지 필수 항목은 확인이 필요할 때만 보여 준다. */
+    private static final java.util.EnumSet<ChecklistItem.Id> DESIGN_ITEMS = java.util.EnumSet.of(
+            ChecklistItem.Id.SEAT_BELT, ChecklistItem.Id.SIDE_MIRROR, ChecklistItem.Id.FUEL,
+            ChecklistItem.Id.SEAT_POSITION, ChecklistItem.Id.GUIDE_VOLUME, ChecklistItem.Id.MUSIC_OFF,
+            ChecklistItem.Id.PHONE_MOUNT);
+
     @Override
     protected View onCreateContent(LayoutInflater inflater, ViewGroup container) {
-        setTitle("출발 전에\n확인해요", "다 되면 출발해요.");
-        enableVoice("다 확인했어");
+        setTitle("출발 전에 확인해요", "다 되면 출발해요.");
         setPrimary("다음", this::tryNext);
-        setSecondary("차량 상태 다시 확인", () -> setupVm().refreshChecklist());
         rows = scrollList(inflater);
         setupVm().checklist().observe(getViewLifecycleOwner(), this::render);
         setupVm().refreshChecklist();
@@ -50,22 +54,32 @@ public class ChecklistFragment extends BaseSetupFragment {
         }
         items = list;
         rows.removeAllViews();
+        rows.addView(com.example.application.ui.common.Choices.sectionTitle(requireContext(), "출발 전 체크리스트"));
+        List<View> cards = new ArrayList<>();
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
         for (ChecklistItem item : list) {
-            String badge = item.status == ChecklistItem.Status.DONE ? "✓"
-                    : item.status == ChecklistItem.Status.ATTENTION ? "!" : "";
-            String trailing = item.autoChecked ? "자동 확인" : item.isDone() ? "확인함" : "눌러서 확인";
-            if (item.id == ChecklistItem.Id.GUIDE_VOLUME && !item.isDone()) {
-                trailing = "눌러서 들어보기";
+            if (!DESIGN_ITEMS.contains(item.id) && item.isDone()) {
+                continue; // 문 닫힘·목적지 등은 문제가 있을 때만 표시
             }
-            ItemRowBinding b = Rows.add(rows, badge, item.id.label + (item.id.required ? " (필수)" : ""),
-                    item.guide, trailing);
+            ItemCheckCardBinding b = ItemCheckCardBinding.inflate(inflater, rows, false);
+            b.checkLabel.setText(item.id.label);
+            boolean done = item.isDone();
+            b.checkBox.setSelected(done);
+            b.checkIcon.setVisibility(done ? View.VISIBLE : View.GONE);
+            b.checkRequired.setVisibility(item.id.required ? View.VISIBLE : View.GONE);
+            b.checkAuto.setVisibility(item.autoChecked ? View.VISIBLE : View.GONE);
             if (item.status == ChecklistItem.Status.ATTENTION) {
-                b.rowBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.attention));
-            } else if (item.isDone()) {
-                b.rowBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.positive));
+                b.checkAuto.setVisibility(View.VISIBLE);
+                b.checkAuto.setText("확인 필요");
+                b.checkAuto.setTextColor(ContextCompat.getColor(requireContext(), R.color.attention));
             }
+            b.getRoot().setContentDescription(item.id.label + (item.id.required ? ", 필수" : "")
+                    + (item.autoChecked ? ", 자동 확인" : "") + (done ? ", 확인됨" : ", 확인 안 됨"));
             b.getRoot().setOnClickListener(v -> onItemClick(item));
+            cards.add(b.getRoot());
         }
+        com.example.application.ui.common.Choices.addGrid(rows, cards,
+                com.example.application.ui.common.Choices.isWide(requireContext()) ? 2 : 1);
     }
 
     private void onItemClick(ChecklistItem item) {

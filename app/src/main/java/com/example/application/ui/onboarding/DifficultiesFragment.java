@@ -17,7 +17,7 @@ import java.util.Arrays;
 public class DifficultiesFragment extends BaseStepFragment {
     @Override
     protected View onCreateContent(LayoutInflater inflater, ViewGroup container) {
-        setTitle("평소 어려움이 있었던\n부분을 알려 주세요", "운전할 때 힘들었던 부분을 모두 골라 주세요.");
+        setTitle("평소 어려웠던 부분을 알려 주세요", "해당하는 것을 모두 골라 주세요.");
         setProgress(3, 4);
         showNav(true, false);
         DriverProfile p = services().profiles.get();

@@ -27,7 +27,7 @@ public class SkillFragment extends BaseSetupFragment {
         setTitle("어떤 기술을\n연습할까요?", "가장 걱정되는 것부터 골라 보세요.");
         enableVoice("유턴이랑 주차");
         setPrimary("다음", this::goNext);
-        refresh = Choices.addChipSection(scrollList(inflater), null,
+        refresh = Choices.addChipSection(scrollList(inflater), "연습할 기술",
                 Arrays.asList(DrivingSkill.values()), setup().skills, false, null);
         return null;
     }

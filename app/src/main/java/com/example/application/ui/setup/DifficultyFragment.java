@@ -30,7 +30,7 @@ public class DifficultyFragment extends BaseSetupFragment {
 
     @Override
     protected View onCreateContent(LayoutInflater inflater, ViewGroup container) {
-        setTitle("어느 정도로\n연습할까요?", "난이도에 맞춰 길을 골라 드려요.");
+        setTitle("얼마나 어렵게 해 볼까요?", "고른 대로 길의 복잡도를 맞춰요.");
         enableVoice("쉬움, 익숙한 곳");
         setPrimary("다음", this::goNext);
         difficulty.clear();
@@ -44,7 +44,7 @@ public class DifficultyFragment extends BaseSetupFragment {
         LinearLayout list = scrollList(inflater);
         refreshDifficulty = Choices.addChipSection(list, "연습 난이도", Arrays.asList(Difficulty.values()),
                 difficulty, true, this::sync);
-        refreshFamiliarity = Choices.addChipSection(list, "어디서 연습할까요?", Arrays.asList(Familiarity.values()),
+        refreshFamiliarity = Choices.addChipSection(list, "이 지역은 어떤가요?", Arrays.asList(Familiarity.values()),
                 familiarity, true, this::sync);
         return null;
     }

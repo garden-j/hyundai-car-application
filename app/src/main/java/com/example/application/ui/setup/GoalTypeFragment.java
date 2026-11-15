@@ -3,6 +3,7 @@ package com.example.application.ui.setup;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 
 import com.example.application.domain.SetupStep;
 import com.example.application.domain.VoiceCommandParser;
@@ -27,7 +28,9 @@ public class GoalTypeFragment extends BaseSetupFragment {
         setTitle("오늘은 어떤\n연습을 할까요?", "여러 개 골라도 괜찮아요.");
         enableVoice("주행 기술과 목적지");
         setPrimary("다음", this::goNext);
-        refresh = Choices.addCardGrid(scrollList(inflater), Arrays.asList(PracticeGoalType.values()),
+        LinearLayout list = scrollList(inflater);
+        list.addView(Choices.sectionTitle(requireContext(), "연습 유형"));
+        refresh = Choices.addCardGrid(list, Arrays.asList(PracticeGoalType.values()),
                 setup().goalTypes, false, 2, () -> setup().clearUnselectedDetails());
         return null;
     }

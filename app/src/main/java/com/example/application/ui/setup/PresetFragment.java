@@ -35,7 +35,7 @@ public class PresetFragment extends BaseSetupFragment {
     @Override
     protected View onCreateContent(LayoutInflater inflater, ViewGroup container) {
         setupVm().recommendPreset();
-        setTitle("차 안을 이렇게\n맞춰 둘까요?", setupVm().presetReason());
+        setTitle("차 안을 이렇게 맞춰 둘까요?", setupVm().presetReason());
         enableVoice("이대로 해 줘");
         setPrimary("이대로 적용", this::apply);
         setSecondary("항목 수정", () -> nav().push(new PresetEditFragment()));
@@ -65,7 +65,7 @@ public class PresetFragment extends BaseSetupFragment {
                     value = item.summary;
                 }
             }
-            Rows.add(rows, null, item.category.label, item.manual ? "차량 API로 바꿀 수 없어 직접 해 주세요" : null,
+            Rows.add(rows, null, item.category.label, null,
                     value);
             if (item.requiresConsent) {
                 CheckBox consent = new CheckBox(requireContext());

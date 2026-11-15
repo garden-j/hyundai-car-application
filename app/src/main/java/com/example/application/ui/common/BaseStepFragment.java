@@ -3,6 +3,7 @@ package com.example.application.ui.common;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
@@ -42,6 +43,10 @@ public abstract class BaseStepFragment extends Fragment {
         frame = FragmentStepBinding.inflate(inflater, container, false);
         frame.btnBack.setOnClickListener(v -> nav().back());
         frame.btnHome.setOnClickListener(v -> nav().home());
+        frame.sectionTitle.setText(defaultSection());
+        if (getResources().getConfiguration().screenWidthDp < WIDE_MIN_DP) {
+            stackFooter();
+        }
         View content = onCreateContent(inflater, frame.content);
         if (content != null && content.getParent() == null) {
             frame.content.addView(content);
@@ -56,10 +61,50 @@ public abstract class BaseStepFragment extends Fragment {
         frame = null;
     }
 
-    // ---- 왼쪽 패널 설정 도우미 ----
+    /** 이 폭 이상이면 가로(L) 배치, 미만이면 세로(P) 배치. 앱 영역은 가로 1682dp, 분할 시 약 840dp. */
+    static final int WIDE_MIN_DP = 1100;
+
+    /** 앱 바 제목(구역 이름). 화면 묶음별 기본값이며 setSection으로 바꿀 수 있다. */
+    private String defaultSection() {
+        String pkg = getClass().getName();
+        if (pkg.contains(".onboarding.")) {
+            return "시작하기";
+        } else if (pkg.contains(".setup.")) {
+            return "연습 설정";
+        } else if (pkg.contains(".drive.")) {
+            return "주행";
+        }
+        return "";
+    }
+
+    /** 세로(P) 배치: 음성 안내를 위에, 버튼을 아래 전체 폭으로 쌓는다. */
+    private void stackFooter() {
+        frame.footer.setOrientation(LinearLayout.VERTICAL);
+        frame.footer.setGravity(android.view.Gravity.NO_GRAVITY);
+        LinearLayout.LayoutParams voice = (LinearLayout.LayoutParams) frame.voiceArea.getLayoutParams();
+        voice.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        voice.weight = 0;
+        voice.bottomMargin = Choices.dp(requireContext(), 16);
+        LinearLayout.LayoutParams actions = (LinearLayout.LayoutParams) frame.actions.getLayoutParams();
+        actions.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        actions.setMarginStart(0);
+        for (View b : new View[]{frame.btnSecondary, frame.btnPrimary}) {
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) b.getLayoutParams();
+            lp.width = 0;
+            lp.weight = b == frame.btnPrimary ? 3 : 2;
+        }
+        frame.voiceArea.setVisibility(View.GONE);
+    }
+
+    // ---- 화면 설정 도우미 ----
+
+    protected void setSection(String section) {
+        frame.sectionTitle.setText(section);
+    }
 
     protected void setTitle(String title, String subtitle) {
-        frame.title.setText(title);
+        // 새 디자인은 제목을 한 줄로 쓴다(좁으면 자동 줄바꿈)
+        frame.title.setText(title == null ? null : title.replace("\n", " "));
         frame.subtitle.setText(subtitle);
         frame.subtitle.setVisibility(subtitle == null ? View.GONE : View.VISIBLE);
     }
@@ -96,7 +141,7 @@ public abstract class BaseStepFragment extends Fragment {
 
     /** "말로 답해도 돼요" 영역을 켠다. example은 따옴표 안 예시 문장. */
     protected void enableVoice(String example) {
-        voiceHint = "말로 답해도 돼요. “" + example + "”";
+        voiceHint = "말로 답해도 돼요: “" + example + "”";
         frame.voiceArea.setVisibility(View.VISIBLE);
         frame.voiceHint.setText(voiceHint);
         frame.btnMic.setOnClickListener(v -> startListening());

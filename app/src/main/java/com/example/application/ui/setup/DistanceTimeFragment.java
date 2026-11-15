@@ -40,7 +40,7 @@ public class DistanceTimeFragment extends BaseSetupFragment {
 
     @Override
     protected View onCreateContent(LayoutInflater inflater, ViewGroup container) {
-        setTitle("원하는 만큼\n정해 볼까요?", "거리나 시간 중 하나를 정해 주세요.");
+        setTitle("얼마나 달려 볼까요?", "거리나 시간 중 편한 쪽으로 하나만 골라요.");
         enableVoice("25분");
         setPrimary("다음", this::goNext);
         if (setup().amount == null) {

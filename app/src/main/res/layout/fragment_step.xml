@@ -1,125 +1,161 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 모든 단계 화면의 공통 틀(와이어프레임): 왼쪽 = 제목·음성·버튼, 오른쪽 = 화면별 내용 -->
+<!--
+  모든 단계 화면의 공통 틀(Figma L/xx · P/xx):
+  App Bar(뒤로 · 구역 제목 · 단계 · 홈) → Body(제목 · 부제목 · 화면별 내용) → Footer(음성 안내 · 버튼).
+  세로(좁은) 화면에서는 BaseStepFragment가 Footer를 위아래로 쌓는다.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:padding="@dimen/gap_large">
+    android:background="@color/bg"
+    android:orientation="vertical">
 
+    <!-- App Bar: pt32 pb8 px40 gap24 -->
     <LinearLayout
-        android:id="@+id/left_panel"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="4"
-        android:orientation="vertical"
-        android:paddingEnd="@dimen/gap_large">
+        android:id="@+id/app_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/nav_button"
+        android:orientation="horizontal"
+        android:paddingStart="40dp"
+        android:paddingTop="32dp"
+        android:paddingEnd="40dp"
+        android:paddingBottom="8dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <ImageButton
+            android:id="@+id/btn_back"
+            style="@style/Button.Nav"
+            android:layout_marginEnd="24dp"
+            android:contentDescription="@string/back"
+            android:src="@drawable/ic_back" />
+
+        <TextView
+            android:id="@+id/section_title"
+            style="@style/Text.Headline"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="연습 설정" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_back"
-                style="@style/Button.Nav"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/back" />
+        <TextView
+            android:id="@+id/progress"
+            style="@style/Text.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:visibility="gone"
+            tools:text="8 / 12"
+            tools:visibility="visible" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_home"
-                style="@style/Button.Nav"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="@string/home" />
+        <ImageButton
+            android:id="@+id/btn_home"
+            style="@style/Button.Nav"
+            android:layout_marginStart="24dp"
+            android:contentDescription="@string/home"
+            android:src="@drawable/ic_home" />
+    </LinearLayout>
 
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <TextView
-                android:id="@+id/progress"
-                style="@style/Text.Caption"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:visibility="gone"
-                tools:text="1 / 4"
-                tools:visibility="visible" />
-        </LinearLayout>
+    <!-- Body: px40 py24, 제목 묶음과 내용 사이 40 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="40dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="40dp">
 
         <TextView
             android:id="@+id/title"
             style="@style/Text.Title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/gap_large"
-            tools:text="오늘은 어떤\n연습을 할까요?" />
+            tools:text="이 길은 어떠세요?" />
 
         <TextView
             android:id="@+id/subtitle"
-            style="@style/Text.Body"
+            style="@style/Text.Subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textColor="@color/text_secondary"
-            tools:text="여러 개 골라도 괜찮아요." />
+            android:layout_marginTop="8dp"
+            tools:text="연습에 맞는 길을 세 가지 골랐어요." />
 
-        <Space
-            android:layout_width="1dp"
+        <FrameLayout
+            android:id="@+id/content"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
+    </LinearLayout>
+
+    <!-- Footer: pt16 pb40 px40 gap24 / 왼쪽 음성 안내, 오른쪽 버튼 -->
+    <LinearLayout
+        android:id="@+id/footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="40dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="40dp"
+        android:paddingBottom="40dp">
 
         <LinearLayout
             android:id="@+id/voice_area"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="invisible"
             tools:visibility="visible">
 
             <ImageButton
                 android:id="@+id/btn_mic"
-                android:layout_width="72dp"
-                android:layout_height="72dp"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
                 android:background="@drawable/bg_mic"
                 android:contentDescription="@string/mic"
+                android:scaleType="center"
                 android:src="@drawable/ic_mic" />
 
             <TextView
                 android:id="@+id/voice_hint"
                 style="@style/Text.Caption"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="@dimen/gap"
-                tools:text="말로 답해도 돼요. “주행 기술과 목적지”" />
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:textColor="@color/text_primary"
+                tools:text="말로 답해도 돼요: “첫 번째로 할게”" />
         </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_primary"
-            style="@style/Button.Primary"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:id="@+id/actions"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/next" />
+            android:layout_marginStart="24dp"
+            android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_secondary"
-            style="@style/Button.Secondary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:visibility="gone"
-            tools:text="다시 듣기"
-            tools:visibility="visible" />
+            <Button
+                android:id="@+id/btn_secondary"
+                style="@style/Button.Secondary"
+                android:layout_width="280dp"
+                android:layout_height="@dimen/touch_min"
+                android:layout_marginEnd="16dp"
+                android:visibility="gone"
+                tools:text="다시 듣기"
+                tools:visibility="visible" />
+
+            <Button
+                android:id="@+id/btn_primary"
+                style="@style/Button.Primary"
+                android:layout_width="440dp"
+                android:layout_height="@dimen/touch_min"
+                android:text="@string/next" />
+        </LinearLayout>
     </LinearLayout>
-
-    <FrameLayout
-        android:id="@+id/content"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="6" />
 </LinearLayout>
