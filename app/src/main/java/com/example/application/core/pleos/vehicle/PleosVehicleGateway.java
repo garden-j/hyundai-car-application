@@ -26,6 +26,10 @@ import ai.pleos.playground.vehicle.constant.unit.TemperatureUnit;
  * SDK 콜백은 IPC 스레드에서 오므로 결과는 모두 메인 스레드로 넘긴다.
  */
 public class PleosVehicleGateway implements VehicleGateway {
+    /** 에뮬레이터(ranchu/goldfish)에서 실행 중인지. */
+    static final boolean IS_EMULATOR = "ranchu".equals(android.os.Build.HARDWARE)
+            || "goldfish".equals(android.os.Build.HARDWARE);
+
     private static final String TAG = "PleosVehicle";
 
     private static final SeatArea DRIVER_SEAT = new SeatArea(SeatValue.ROW_1_LEFT);
@@ -238,6 +242,11 @@ public class PleosVehicleGateway implements VehicleGateway {
             // EV_BATTERY_LEVEL은 Wh 단위 → 용량 대비 %로 변환
             if (evRaw[0] != null && evRaw[1] != null && evRaw[1] > 0) {
                 result.evBatteryLevel = Math.min(100f, evRaw[0] / evRaw[1] * 100f);
+            }
+            // Pleos 에뮬레이터는 안전벨트가 항상 미착용으로 고정돼 있고 Virtual Console에도 바꾸는 기능이 없다.
+            // 에뮬레이터에서는 센서 값을 "알 수 없음"으로 처리해 체크리스트에서 직접 확인하게 한다(실차는 센서 값 사용).
+            if (IS_EMULATOR && Boolean.FALSE.equals(result.driverSeatBeltBuckled)) {
+                result.driverSeatBeltBuckled = null;
             }
             callback.onSuccess(result);
         });
