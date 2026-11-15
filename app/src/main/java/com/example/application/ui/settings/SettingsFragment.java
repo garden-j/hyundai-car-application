@@ -39,11 +39,22 @@ public class SettingsFragment extends BaseStepFragment {
 
         DriverProfile p = services().profiles.get();
         Set<GuidanceLevel> level = EnumSet.of(p.guidanceLevelOrDefault());
-        Choices.addChipSection(list, "안내량", Arrays.asList(GuidanceLevel.values()), level, true, () -> {
+        Choices.addChipSection(list, "주의 안내 (주행 중 회전·주의 지점)", Arrays.asList(GuidanceLevel.values()), level, true, () -> {
             if (!level.isEmpty()) {
                 p.guidanceLevel = level.iterator().next();
                 services().profiles.save(p);
             }
+        });
+        // 안내 유형별 수준: Relax(긴장 완화)·격려 안내를 따로 정한다
+        Set<GuidanceLevel> relax = EnumSet.of(p.relaxLevelOrDefault());
+        Choices.addChipSection(list, "Relax 안내 (긴장될 때 진정·휴식)", Arrays.asList(GuidanceLevel.values()), relax, true, () -> {
+            p.relaxLevel = relax.iterator().next();
+            services().profiles.save(p);
+        });
+        Set<GuidanceLevel> encourage = EnumSet.of(p.encourageLevelOrDefault());
+        Choices.addChipSection(list, "격려 안내 (주행을 마친 뒤)", Arrays.asList(GuidanceLevel.values()), encourage, true, () -> {
+            p.encourageLevel = encourage.iterator().next();
+            services().profiles.save(p);
         });
 
         addServiceModeSection(list);

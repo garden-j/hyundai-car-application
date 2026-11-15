@@ -16,6 +16,21 @@ public class DriverProfile {
     public AverageDriveTime averageDriveTime;
     public Set<DifficultSituation> difficulties = EnumSet.noneOf(DifficultSituation.class);
     public GuidanceLevel guidanceLevel;
+    /** 안내 유형별 수준: Relax(긴장 완화) 안내, 격려 안내. null이면 표준. */
+    public GuidanceLevel relaxLevel;
+    public GuidanceLevel encourageLevel;
+    /** 익숙한 도로 환경(복수). */
+    public Set<RoadEnvironment> familiarRoads = EnumSet.noneOf(RoadEnvironment.class);
+    /** 주요 운전 목적(복수). */
+    public Set<DrivingPurpose> purposes = EnumSet.noneOf(DrivingPurpose.class);
+
+    public GuidanceLevel relaxLevelOrDefault() {
+        return relaxLevel == null ? GuidanceLevel.STANDARD : relaxLevel;
+    }
+
+    public GuidanceLevel encourageLevelOrDefault() {
+        return encourageLevel == null ? GuidanceLevel.STANDARD : encourageLevel;
+    }
     public boolean onboardingCompleted;
 
     public GuidanceLevel guidanceLevelOrDefault() {

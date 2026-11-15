@@ -38,6 +38,7 @@ public final class ChecklistEvaluator {
         items.add(manual(Id.SEAT_POSITION, userChecked, "브레이크를 끝까지 밟았을 때 무릎이 살짝 굽혀지게 맞춰 주세요."));
         items.add(manual(Id.GUIDE_VOLUME, userChecked, "'안내 들어보기'로 음성이 잘 들리는지 확인해 주세요."));
         items.add(manual(Id.MUSIC_OFF, userChecked, "연습 중에는 음악을 끄면 안내를 더 잘 들을 수 있어요."));
+        items.add(manual(Id.PHONE_MOUNT, userChecked, "휴대폰은 거치대에 두고 주행 중에는 만지지 않아요."));
 
         boolean routeSet = setup != null && setup.selectedRoute != null;
         items.add(new ChecklistItem(Id.ROUTE, routeSet ? Status.DONE : Status.ATTENTION, true,

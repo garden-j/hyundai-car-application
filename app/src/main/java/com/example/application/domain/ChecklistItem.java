@@ -10,6 +10,7 @@ public class ChecklistItem {
         SEAT_POSITION("시트 위치 확인", false),
         GUIDE_VOLUME("안내 음량 확인", false),
         MUSIC_OFF("음악 끄기", false),
+        PHONE_MOUNT("휴대폰 거치", false),
         ROUTE("목적지·연습 설정 확인", true),
         PERMISSIONS("위치·마이크 사용 확인", false);
 

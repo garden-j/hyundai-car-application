@@ -47,11 +47,15 @@ public class ExperienceFragment extends BaseStepFragment {
             time.add(p.averageDriveTime);
         }
 
-        Choices.addChipSection(list, "운전 경력 (면허 취득 후)", Arrays.asList(LicensePeriod.values()), license, true, null);
+        Choices.addChipSection(list, "운전 경력", Arrays.asList(LicensePeriod.values()), license, true, null);
         Choices.addChipSection(list, "도로 연수", Arrays.asList("받아 봤어요", "아직이에요"), s -> s, lessons, true, null);
-        Choices.addChipSection(list, "운전 빈도 (1 가끔 함 · 5 자주 함)", Arrays.asList(1, 2, 3, 4, 5),
+        Choices.addChipSection(list, "운전 빈도 (1 가끔 · 5 자주)", Arrays.asList(1, 2, 3, 4, 5),
                 String::valueOf, frequency, true, null);
         Choices.addChipSection(list, "한 번에 운전하는 시간", Arrays.asList(AverageDriveTime.values()), time, true, null);
+        Choices.addChipSection(list, "익숙한 도로 (여러 개 선택)", Arrays.asList(com.example.application.model.RoadEnvironment.values()),
+                p.familiarRoads, false, null);
+        Choices.addChipSection(list, "주로 운전하는 목적 (여러 개 선택)", Arrays.asList(com.example.application.model.DrivingPurpose.values()),
+                p.purposes, false, null);
 
         setPrimary("다음", () -> {
             p.licensePeriod = license.isEmpty() ? null : license.iterator().next();
