@@ -22,6 +22,7 @@ import com.example.application.di.ServiceLocator;
 import com.example.application.domain.DriveGuide;
 import com.example.application.domain.EnvironmentWatch;
 import com.example.application.domain.FuelGuide;
+import com.example.application.domain.GuidanceQueue;
 import com.example.application.domain.RelaxGuide;
 import com.example.application.model.GuidanceLevel;
 
@@ -55,6 +56,16 @@ public class DriveGuideService extends Service {
     private double lastFirstDistance = -1;
     private long lastHardAt;
     private boolean energyAlerted;
+    /** 안내 우선순위 대기열(안전 > 회전 > 상황 알림 > Relax > 격려, 대기 최대 2개). */
+    private final GuidanceQueue queue = new GuidanceQueue();
+    private final com.example.application.core.pleos.voice.TtsGateway.Listener ttsListener = speaking -> {
+        if (!speaking) {
+            GuidanceQueue.Item next = queue.onSpeakingFinished(System.currentTimeMillis());
+            if (next != null) {
+                speakItem(next);
+            }
+        }
+    };
 
     public static void start(Context context, String modeLabel, GuidanceLevel guide, GuidanceLevel relax,
                              GuidanceLevel encourage) {
@@ -90,6 +101,9 @@ public class DriveGuideService extends Service {
         energyAlerted = false;
         lastFirstKey = null;
         DriveSession.get().begin(mode, level, level(intent, EXTRA_RELAX), level(intent, EXTRA_ENCOURAGE));
+        queue.clear();
+        ServiceLocator.get().tts.removeListener(ttsListener);
+        ServiceLocator.get().tts.addListener(ttsListener);
         Log.i(TAG, "drive guidance started, level=" + level);
         ServiceLocator.get().navi.setDriveListener(new NaviGateway.DriveListener() {
             @Override
@@ -99,7 +113,7 @@ public class DriveGuideService extends Service {
 
             @Override
             public void onCautions(List<DriveGuide.CautionPoint> cautions) {
-                sayUrgent(guide.onCautions(cautions));
+                say(guide.onCautions(cautions), GuidanceQueue.Priority.SAFETY);
             }
 
             @Override
@@ -110,7 +124,7 @@ public class DriveGuideService extends Service {
                     s.headline = "목적지에 도착했어요";
                     s.tip = "안전하게 정차한 뒤 주행 마치기를 눌러 주세요";
                 });
-                sayUrgent(guide.onArrived());
+                say(guide.onArrived(), GuidanceQueue.Priority.SAFETY);
             }
 
             @Override
@@ -148,7 +162,7 @@ public class DriveGuideService extends Service {
             s.headline = DriveGuide.label(first.maneuver);
             s.tip = first.description.isEmpty() ? null : first.description;
         });
-        say(guide.onUpcoming(upcoming));
+        say(guide.onUpcoming(upcoming), GuidanceQueue.Priority.TURN);
     }
 
     /** 어려운 구간을 연달아 지나면 짧은 Relax 한마디. */
@@ -160,7 +174,7 @@ public class DriveGuideService extends Service {
         }
         long now = System.currentTimeMillis();
         if (lastHardAt > 0 && now - lastHardAt < HARD_WINDOW_MS) {
-            say(RelaxGuide.afterHardSection(DriveSession.get().relaxLevel()));
+            say(RelaxGuide.afterHardSection(DriveSession.get().relaxLevel()), GuidanceQueue.Priority.RELAX);
             lastHardAt = 0;
         } else {
             lastHardAt = now;
@@ -177,13 +191,13 @@ public class DriveGuideService extends Service {
                 s.headline = session.isEv() ? "충전소에 도착했어요" : "주유소에 도착했어요";
                 s.tip = "화면의 순서대로 천천히 해요";
             });
-            ServiceLocator.get().tts.speakAll(steps);
+            say(String.join(" ", steps), GuidanceQueue.Priority.ALERT);
         } else if (session.waypointPurpose() == DriveSession.WaypointPurpose.REST) {
             session.update(s -> {
                 s.headline = "쉴 곳에 도착했어요";
                 s.tip = "기어를 P에 두고 편하게 쉬어요";
             });
-            sayUrgent("쉴 곳에 도착했어요. 안전하게 세우고 기어를 P에 둔 뒤 편하게 쉬어요.");
+            say("쉴 곳에 도착했어요. 안전하게 세우고 기어를 P에 둔 뒤 편하게 쉬어요.", GuidanceQueue.Priority.ALERT);
         }
         session.setWaypointPurpose(DriveSession.WaypointPurpose.NONE);
     }
@@ -203,7 +217,7 @@ public class DriveGuideService extends Service {
                         energyAlerted = true;
                         String text = FuelGuide.alert(ev, pct, r.rangeKm);
                         DriveSession.get().update(s -> s.energyAlert = text);
-                        say(text);
+                        say(text, GuidanceQueue.Priority.ALERT);
                     }
                 }
 
@@ -218,7 +232,7 @@ public class DriveGuideService extends Service {
                 EnvironmentWatch.Change c = envWatch.update(st.wiperOn, st.lowBeamOn);
                 if (c != null) {
                     DriveSession.get().update(s -> s.envChange = c);
-                    say(EnvironmentWatch.message(c, DriveSession.get().guidance()));
+                    say(EnvironmentWatch.message(c, DriveSession.get().guidance()), GuidanceQueue.Priority.ALERT);
                 }
             }
 
@@ -229,27 +243,32 @@ public class DriveGuideService extends Service {
         handler.postDelayed(periodic, CHECK_INTERVAL_MS);
     }
 
-    /** 일반 안내: 말하던 것 뒤에 잇는다. */
-    private void say(String text) {
-        if (text != null) {
-            Log.i(TAG, "say: " + text);
-            DriveSession.get().update(s -> s.lastSpoken = text);
-            ServiceLocator.get().tts.enqueue(text);
+    /**
+     * 안내를 우선순위 대기열에 넣는다. 안전 안내는 말하던 낮은 순위를 끊고 바로 말하고,
+     * 나머지는 앞의 안내가 끝나면 우선순위 순서로 말한다(대기 최대 2개, 오래된 안내는 버림).
+     */
+    private void say(String text, GuidanceQueue.Priority priority) {
+        if (text == null) {
+            return;
+        }
+        GuidanceQueue.Action action = queue.offer(text, priority, System.currentTimeMillis());
+        Log.i(TAG, "guidance " + priority + " " + action + ": " + text);
+        if (action == GuidanceQueue.Action.SPEAK || action == GuidanceQueue.Action.INTERRUPT) {
+            speakItem(queue.current());
         }
     }
 
-    /** 안전 안내(주의 지점·도착): 말하던 것을 멈추고 바로 말한다. */
-    private void sayUrgent(String text) {
-        if (text != null) {
-            Log.i(TAG, "say(urgent): " + text);
-            DriveSession.get().update(s -> s.lastSpoken = text);
-            ServiceLocator.get().tts.speak(text);
-        }
+    private void speakItem(GuidanceQueue.Item item) {
+        DriveSession.get().update(s -> s.lastSpoken = item.text);
+        // speak()는 엔진이 말하던 것을 멈추고 이 문장만 말한다(순서는 대기열이 관리)
+        ServiceLocator.get().tts.speak(item.text);
     }
 
     @Override
     public void onDestroy() {
         handler.removeCallbacks(periodic);
+        queue.clear();
+        ServiceLocator.get().tts.removeListener(ttsListener);
         ServiceLocator.get().navi.setDriveListener(null);
         DriveSession.get().end();
         Log.i(TAG, "drive guidance stopped");

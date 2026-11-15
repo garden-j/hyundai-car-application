@@ -24,5 +24,8 @@ public interface TtsGateway {
 
     void stop();
 
-    void setListener(Listener listener);
+    /** 말하기 시작·끝 알림을 받는다(여러 곳에서 동시에 받을 수 있음). */
+    void addListener(Listener listener);
+
+    void removeListener(Listener listener);
 }

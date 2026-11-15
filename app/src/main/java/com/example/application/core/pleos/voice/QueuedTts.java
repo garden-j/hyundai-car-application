@@ -12,7 +12,7 @@ abstract class QueuedTts implements TtsGateway {
     private final Deque<String> queue = new ArrayDeque<>();
     private boolean speaking;
     protected boolean ready;
-    private Listener listener;
+    private final java.util.List<Listener> listeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     protected abstract void speakNow(String text);
 
@@ -54,8 +54,15 @@ abstract class QueuedTts implements TtsGateway {
     }
 
     @Override
-    public void setListener(Listener listener) {
-        this.listener = listener;
+    public void addListener(Listener listener) {
+        if (listener != null && !listeners.contains(listener)) {
+            listeners.add(listener);
+        }
+    }
+
+    @Override
+    public void removeListener(Listener listener) {
+        listeners.remove(listener);
     }
 
     /** 엔진 초기화 완료 시 호출. 그동안 쌓인 문장을 읽기 시작한다. */
@@ -92,8 +99,8 @@ abstract class QueuedTts implements TtsGateway {
     private void setSpeaking(boolean value) {
         if (reportedSpeaking != value) {
             reportedSpeaking = value;
-            if (listener != null) {
-                listener.onSpeakingChanged(value);
+            for (Listener l : listeners) {
+                l.onSpeakingChanged(value);
             }
         }
     }

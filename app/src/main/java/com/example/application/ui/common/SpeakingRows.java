@@ -15,14 +15,15 @@ public final class SpeakingRows {
 
     private final TtsGateway tts;
     private ItemRowBinding current;
+    private final TtsGateway.Listener listener = speaking -> {
+        if (!speaking) {
+            markDone();
+        }
+    };
 
     public SpeakingRows(TtsGateway tts) {
         this.tts = tts;
-        tts.setListener(speaking -> {
-            if (!speaking) {
-                markDone();
-            }
-        });
+        tts.addListener(listener);
     }
 
     /** 행을 눌렀을 때. expanded는 읽는 동안 행에 보여 줄 설명(없으면 null). */
@@ -50,7 +51,7 @@ public final class SpeakingRows {
 
     /** 화면을 떠날 때: 읽기를 멈추고 리스너를 해제한다. */
     public void release() {
-        tts.setListener(null);
+        tts.removeListener(listener);
         tts.stop();
         current = null;
     }
