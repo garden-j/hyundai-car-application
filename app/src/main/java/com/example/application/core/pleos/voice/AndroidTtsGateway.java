@@ -14,6 +14,13 @@ public class AndroidTtsGateway extends QueuedTts {
     private TextToSpeech tts;
     private int seq;
 
+    /** 기기에 안드로이드 TTS 엔진이 있어 초기화에 성공했는지. */
+    private volatile boolean available;
+
+    public boolean isAvailable() {
+        return available;
+    }
+
     public AndroidTtsGateway(Context context) {
         this.context = context.getApplicationContext();
     }
@@ -25,7 +32,8 @@ public class AndroidTtsGateway extends QueuedTts {
                 Log.w(TAG, "android tts unavailable");
                 return;
             }
-            tts.setLanguage(Locale.KOREAN);
+            available = true;
+            tts.setLanguage(Locale.KOREA);
             tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                 @Override
                 public void onStart(String id) {

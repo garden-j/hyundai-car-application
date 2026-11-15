@@ -44,7 +44,8 @@ public class PleosTtsGateway extends QueuedTts {
         @Override
         public void onError(ErrorType errorType) {
             Log.w(TAG, "tts error " + errorType);
-            if (!usingFallback && isEngineUnavailable(errorType)) {
+            // 대체 엔진(안드로이드 TTS)이 실제로 있을 때만 넘어간다. 없으면 Pleos를 계속 쓴다
+            if (!usingFallback && isEngineUnavailable(errorType) && fallback.isAvailable()) {
                 // 이후 문장은 모두 대체 엔진으로. 실패한 문장은 다시 읽는다
                 Log.w(TAG, "switching to Android TTS fallback");
                 usingFallback = true;
@@ -88,7 +89,8 @@ public class PleosTtsGateway extends QueuedTts {
             @Override
             public void onSuccess() {
                 tts.addEventListener(events);
-                tts.setLocale(Locale.KOREAN);
+                // "ko"만 넘기면 온디바이스 엔진이 "unsupported locale: ko-"로 실패한다. 국가 코드까지 넘긴다
+                tts.setLocale(Locale.KOREA);
                 if (useServer) {
                     tts.registerApp(BuildConfig.PLEOS_CLIENT_ID, BuildConfig.PLEOS_CLIENT_SECRET,
                             new OnServerConnectionListener() {

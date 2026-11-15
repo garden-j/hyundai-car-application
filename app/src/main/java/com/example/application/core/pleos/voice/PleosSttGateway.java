@@ -105,7 +105,7 @@ public class PleosSttGateway implements SttGateway {
             @Override
             public void onSuccess() {
                 stt.addListener(results);
-                stt.setLocale(Locale.KOREAN);
+                stt.setLocale(Locale.KOREA);
                 if (useServer) {
                     stt.registerApp(BuildConfig.PLEOS_CLIENT_ID, BuildConfig.PLEOS_CLIENT_SECRET,
                             new OnServerConnectionListener() {
