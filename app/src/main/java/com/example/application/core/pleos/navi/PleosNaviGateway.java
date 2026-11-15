@@ -15,7 +15,14 @@ import ai.pleos.playground.navi.constants.NaviErrorCode;
 import ai.pleos.playground.navi.constants.RouteOption;
 import ai.pleos.playground.navi.constants.WaypointIndex;
 import ai.pleos.playground.navi.data.RequestWaypointInfo;
+import ai.pleos.playground.navi.constants.CautionPointType;
+import ai.pleos.playground.navi.constants.TurnType;
+import ai.pleos.playground.navi.data.CautionPoint;
+import ai.pleos.playground.navi.data.DestinationArrivedInfo;
 import ai.pleos.playground.navi.data.NavigationScreenRequest;
+import ai.pleos.playground.navi.data.TBTInfo;
+import ai.pleos.playground.navi.data.WaypointArrivedInfo;
+import com.example.application.domain.DriveGuide;
 import ai.pleos.playground.navi.data.RouteInfo;
 import ai.pleos.playground.navi.data.RouteOverviewShowInfo;
 import ai.pleos.playground.navi.data.RouteStartInfo;
@@ -35,7 +42,51 @@ public class PleosNaviGateway implements NaviGateway {
     private Callback<Void> pending;
     private final Runnable timeout = () -> finish(new IllegalStateException("내비게이션 응답이 없어요"));
 
+    private volatile DriveListener driveListener;
+
     private final NaviHelperEventListener listener = new NaviHelperEventListener() {
+        @Override
+        public void onTBTInfo(List<TBTInfo> list) {
+            DriveListener l = driveListener;
+            if (l == null || list == null) {
+                return;
+            }
+            List<DriveGuide.Upcoming> out = new ArrayList<>();
+            for (TBTInfo t : list) {
+                out.add(new DriveGuide.Upcoming(maneuver(t.getType()), t.getDistance(), t.getDescription()));
+            }
+            MainThread.post(() -> l.onUpcoming(out));
+        }
+
+        @Override
+        public void onCautionPointInfo(List<CautionPoint> list) {
+            DriveListener l = driveListener;
+            if (l == null || list == null) {
+                return;
+            }
+            List<DriveGuide.CautionPoint> out = new ArrayList<>();
+            for (CautionPoint c : list) {
+                out.add(new DriveGuide.CautionPoint(c.getId(), caution(c.getType()), c.getRemainDistance()));
+            }
+            MainThread.post(() -> l.onCautions(out));
+        }
+
+        @Override
+        public void onWayPointArrived(WaypointArrivedInfo info) {
+            DriveListener l = driveListener;
+            if (l != null) {
+                MainThread.post(l::onWaypointArrived);
+            }
+        }
+
+        @Override
+        public void onDestinationArrived(DestinationArrivedInfo info) {
+            DriveListener l = driveListener;
+            if (l != null) {
+                MainThread.post(l::onArrived);
+            }
+        }
+
         @Override
         public void onRouteStarted(RouteStartInfo routeStartInfo) {
             MainThread.post(() -> finish(null));
@@ -125,6 +176,100 @@ public class PleosNaviGateway implements NaviGateway {
                 callback.onError(e);
             }
         });
+    }
+
+    @Override
+    public void addWaypoint(Place place, Callback<Void> callback) {
+        try {
+            navi.addWaypoint(new RequestWaypointInfo(place.point.latitude, place.point.longitude, place.name,
+                    WaypointIndex.FIRST, "", place.address == null ? "" : place.address, "", ""));
+            callback.onSuccess(null);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "addWaypoint failed", e);
+            callback.onError(e);
+        }
+    }
+
+    @Override
+    public void useComfortableRoute() {
+        try {
+            navi.changeRouteOption(RouteOption.COMFORTABLE);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "changeRouteOption failed", e);
+        }
+    }
+
+    @Override
+    public void setDriveListener(DriveListener listener) {
+        driveListener = listener;
+    }
+
+    static DriveGuide.Maneuver maneuver(TurnType t) {
+        if (t == null) {
+            return DriveGuide.Maneuver.OTHER;
+        }
+        switch (t) {
+            case TURN_LEFT:
+            case TURN_SHARP_L:
+                return DriveGuide.Maneuver.LEFT;
+            case TURN_RIGHT:
+            case TURN_SHARP_R:
+                return DriveGuide.Maneuver.RIGHT;
+            case TURN_UTURN:
+                return DriveGuide.Maneuver.U_TURN;
+            case TURN_KEEP_L:
+                return DriveGuide.Maneuver.KEEP_LEFT;
+            case TURN_KEEP_R:
+                return DriveGuide.Maneuver.KEEP_RIGHT;
+            case TURN_ENTER_IC_R:
+            case TURN_ENTER_IC_L:
+            case TURN_ENTER_IC_C:
+            case TURN_DEVIDE_MERGE:
+                return DriveGuide.Maneuver.MERGE;
+            case TURN_EXIT_IC_R:
+            case TURN_EXIT_IC_L:
+            case TURN_EXIT_IC_C:
+                return DriveGuide.Maneuver.EXIT;
+            case TURN_ENTER_ROUNDABOUT_02:
+            case TURN_ENTER_ROUNDABOUT_03:
+            case TURN_ENTER_ROUNDABOUT_04:
+            case TURN_ENTER_ROUNDABOUT_06:
+            case TURN_ENTER_ROUNDABOUT_08:
+            case TURN_ENTER_ROUNDABOUT_09:
+            case TURN_ENTER_ROUNDABOUT_10:
+            case TURN_ENTER_ROUNDABOUT_12:
+                return DriveGuide.Maneuver.ROUNDABOUT;
+            case TURN_STRAIGHT:
+                return DriveGuide.Maneuver.STRAIGHT;
+            case TURN_ARRIVE:
+                return DriveGuide.Maneuver.ARRIVE;
+            default:
+                return DriveGuide.Maneuver.OTHER;
+        }
+    }
+
+    static DriveGuide.Caution caution(CautionPointType t) {
+        if (t == null) {
+            return DriveGuide.Caution.OTHER;
+        }
+        switch (t) {
+            case SCHOOL_ZONE:
+                return DriveGuide.Caution.SCHOOL_ZONE;
+            case SPEED_BUMP:
+                return DriveGuide.Caution.SPEED_BUMP;
+            case ACCIDENT_PRONE_AREA:
+                return DriveGuide.Caution.ACCIDENT_PRONE;
+            case NARROW_ROAD:
+                return DriveGuide.Caution.NARROW_ROAD;
+            case SLIPPERY_ROAD_ALERT:
+                return DriveGuide.Caution.SLIPPERY;
+            case DOWNHILL_CAUTION_AREA:
+                return DriveGuide.Caution.DOWNHILL;
+            case RAILROAD_CROSSING:
+                return DriveGuide.Caution.RAILROAD;
+            default:
+                return DriveGuide.Caution.OTHER;
+        }
     }
 
     @Override

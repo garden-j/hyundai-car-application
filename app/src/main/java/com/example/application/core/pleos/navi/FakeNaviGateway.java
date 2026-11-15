@@ -36,6 +36,22 @@ public class FakeNaviGateway implements NaviGateway {
     }
 
     @Override
+    public void addWaypoint(com.example.application.model.Place place, Callback<Void> callback) {
+        Log.i(TAG, "addWaypoint " + place.name + " (simulated)");
+        MainThread.postDelayed(() -> callback.onSuccess(null), 300);
+    }
+
+    @Override
+    public void useComfortableRoute() {
+        Log.i(TAG, "useComfortableRoute (simulated)");
+    }
+
+    @Override
+    public void setDriveListener(DriveListener listener) {
+        // 시뮬레이션에는 주행 이벤트가 없다
+    }
+
+    @Override
     public void cancelRoute() {
         Log.i(TAG, "cancelRoute");
     }

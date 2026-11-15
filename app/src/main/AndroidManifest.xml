@@ -22,6 +22,10 @@
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
     <!-- 내비 화면 요청(경로 전체 보기). 기본 버전에서 실제 도로 경로를 내비로 보여줄 때 사용 -->
     <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_MAP" />
+    <!-- 내비 경로 보기 동안 앱이 멈추지 않게 잠깐 실행하는 서비스 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- 주행 중 음성 안내(내비가 앞에 있어도 안내를 말함) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!-- Pleos FusedLocation SDK -->
     <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" />
     <!-- Pleos TextToSpeech / SpeechToText (문서에는 없지만 SDK가 initialize()에서 검사함) -->
@@ -68,6 +72,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".core.pleos.navi.NaviPreviewService"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
+        <service
+            android:name=".core.pleos.navi.DriveGuideService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
     </application>
 
 </manifest>
