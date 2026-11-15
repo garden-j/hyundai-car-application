@@ -11,7 +11,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.application"
+        // 앱 고유 ID(패키지명). 소스 패키지(namespace)는 그대로 두고 설치 ID만 정한다.
+        applicationId = "com.chacha.app"
         minSdk = 28
         targetSdk = 37
         versionCode = 1
@@ -33,6 +34,22 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"${props.getProperty("api.baseUrl", "")}\"")
     }
 
+    // release 서명: local.properties의 release.* 값(저장소에 넣지 않음). 없으면 서명 없이 빌드된다.
+    val signing = Properties().apply {
+        val f = rootProject.file("local.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    signingConfigs {
+        if (signing.getProperty("release.storeFile") != null) {
+            create("release") {
+                storeFile = file(signing.getProperty("release.storeFile"))
+                storePassword = signing.getProperty("release.storePassword")
+                keyAlias = signing.getProperty("release.keyAlias")
+                keyPassword = signing.getProperty("release.keyPassword")
+            }
+        }
+    }
+
     buildFeatures {
         buildConfig = true
         viewBinding = true
@@ -40,9 +57,10 @@ android {
 
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+            // R8 최적화를 켜면 Pleos SDK가 쓰는 Kotlin 클래스 접근 오류(IllegalAccessError)로 실행 직후 종료돼 끈다.
             optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+                enable = false
             }
         }
     }
