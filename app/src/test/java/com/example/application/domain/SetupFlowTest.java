@@ -90,4 +90,14 @@ public class SetupFlowTest {
         s.clearUnselectedDetails();
         assertEquals(0, s.skills.size());
     }
+
+    @Test
+    public void generalDriveSkipsPracticeSteps() {
+        com.example.application.model.PracticeSetup s = new com.example.application.model.PracticeSetup();
+        s.generalDrive = true;
+        org.junit.Assert.assertEquals(SetupStep.DESTINATION, SetupFlow.first(s));
+        org.junit.Assert.assertEquals(SetupStep.CHECKLIST, SetupFlow.next(SetupStep.DESTINATION, s));
+        org.junit.Assert.assertEquals(SetupStep.PRESET, SetupFlow.next(SetupStep.CHECKLIST, s));
+        org.junit.Assert.assertEquals(SetupStep.DEPART, SetupFlow.next(SetupStep.PRESET, s));
+    }
 }

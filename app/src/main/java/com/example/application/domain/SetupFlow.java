@@ -16,7 +16,25 @@ public final class SetupFlow {
         return SetupStep.GOAL_TYPE;
     }
 
+    /** 일반 주행은 목적지부터, 연습은 목표 유형부터 시작한다. */
+    public static SetupStep first(PracticeSetup s) {
+        return s != null && s.generalDrive ? SetupStep.DESTINATION : first();
+    }
+
     public static SetupStep next(SetupStep current, PracticeSetup s) {
+        if (s.generalDrive) {
+            // 일반 주행: 목적지 → 준비 체크리스트 → 차량 환경(프리셋) 확인 → 출발
+            switch (current) {
+                case DESTINATION:
+                    return SetupStep.CHECKLIST;
+                case CHECKLIST:
+                    return SetupStep.PRESET;
+                case PRESET:
+                    return SetupStep.DEPART;
+                default:
+                    throw new IllegalStateException("no general-drive step after " + current);
+            }
+        }
         switch (current) {
             case GOAL_TYPE:
                 return firstDetailAfter(-1, s);

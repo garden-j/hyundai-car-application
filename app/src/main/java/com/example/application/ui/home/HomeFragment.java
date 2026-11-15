@@ -50,17 +50,37 @@ public class HomeFragment extends Fragment {
 
         b.date.setText(new SimpleDateFormat("M월 d일 EEEE", Locale.KOREA).format(new Date()));
         recommendation = TodayRecommendation.from(sl.profiles.get());
-        b.recTitle.setText(recommendation.title);
+        b.recTitle.setText(recommendation.title.replace("\n", " "));
         b.recMeta.setText(recommendation.meta);
         b.recReason.setText(recommendation.reason);
-        b.tip.setText(TIPS[(int) ((System.currentTimeMillis() / 86_400_000L) % TIPS.length)]);
+        b.tip.setText(TIPS[(int) ((System.currentTimeMillis() / 86_400_000L) % TIPS.length)].replace("\n", " "));
+        if (!com.example.application.ui.common.Choices.isWide(requireContext())) {
+            // 세로(P) 배치: 추천 카드 아래에 오른쪽 카드들을 쌓는다
+            b.dashboard.setOrientation(android.widget.LinearLayout.VERTICAL);
+            android.widget.LinearLayout.LayoutParams card =
+                    (android.widget.LinearLayout.LayoutParams) b.practiceCard.getLayoutParams();
+            card.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            card.weight = 0;
+            android.widget.LinearLayout.LayoutParams dash =
+                    (android.widget.LinearLayout.LayoutParams) b.dashboard.getLayoutParams();
+            dash.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            dash.weight = 0;
+            card.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            android.widget.LinearLayout.LayoutParams side =
+                    (android.widget.LinearLayout.LayoutParams) b.side.getLayoutParams();
+            side.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            side.setMarginStart(0);
+            side.topMargin = com.example.application.ui.common.Choices.dp(requireContext(), 24);
+        }
 
         b.btnPractice.setOnClickListener(v -> startPractice());
-        b.btnDrive.setOnClickListener(v -> soon("일반 주행"));
+        b.btnDrive.setOnClickListener(v -> startGeneralDrive());
         b.navHome.setOnClickListener(v -> {
         });
-        b.navKnowledge.setOnClickListener(v -> soon("운전 지식"));
-        b.navHelp.setOnClickListener(v -> soon("차량 도움"));
+        b.navKnowledge.setOnClickListener(v -> ((MainActivity) requireActivity()).navigator()
+                .push(new com.example.application.ui.help.KnowledgeFragment()));
+        b.navHelp.setOnClickListener(v -> ((MainActivity) requireActivity()).navigator()
+                .push(new com.example.application.ui.help.VehicleHelpFragment()));
         b.navSettings.setOnClickListener(v -> ((MainActivity) requireActivity()).navigator().push(new SettingsFragment()));
 
         loadVehicle(sl);
@@ -71,6 +91,13 @@ public class HomeFragment extends Fragment {
         SetupViewModel vm = new ViewModelProvider(requireActivity()).get(SetupViewModel.class);
         vm.start(recommendation);
         ((MainActivity) requireActivity()).navigator().openSetupStep(SetupFlow.first());
+    }
+
+    /** 일반 주행: 목적지 → 준비 체크리스트 → 차량 환경 확인 → 출발(내비 안내). */
+    private void startGeneralDrive() {
+        SetupViewModel vm = new ViewModelProvider(requireActivity()).get(SetupViewModel.class);
+        vm.startGeneralDrive();
+        ((MainActivity) requireActivity()).navigator().openSetupStep(SetupFlow.first(vm.setup()));
     }
 
     private void loadVehicle(ServiceLocator sl) {

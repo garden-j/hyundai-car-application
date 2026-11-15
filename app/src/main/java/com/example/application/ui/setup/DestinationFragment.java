@@ -45,7 +45,11 @@ public class DestinationFragment extends BaseSetupFragment {
 
     @Override
     protected View onCreateContent(LayoutInflater inflater, ViewGroup container) {
-        setTitle("어디까지\n가 볼까요?", "가고 싶은 곳을 알려 주세요.");
+        if (setup().generalDrive) {
+            setTitle("어디로 갈까요?", "목적지를 고르면 출발 전 준비를 함께 확인해요.");
+        } else {
+            setTitle("어디까지 가 볼까요?", "가고 싶은 곳을 알려 주세요.");
+        }
         enableVoice("집에서 마트까지 왕복");
         setPrimary("다음", this::goNext);
         if (setup().destination == null) {
@@ -62,8 +66,7 @@ public class DestinationFragment extends BaseSetupFragment {
         }));
 
         Map<String, Place> frequent = services().places.frequentPlaces();
-        refreshFrequent = Choices.addChipSection(list, "자주 가는 곳", new ArrayList<>(frequent.keySet()),
-                s -> s, frequentSelected, true, () -> {
+        refreshFrequent = addQuickPicks(list, new ArrayList<>(frequent.keySet()), frequentSelected, () -> {
                     if (!frequentSelected.isEmpty()) {
                         setup().destination.destination = frequent.get(frequentSelected.iterator().next());
                     }
@@ -78,28 +81,73 @@ public class DestinationFragment extends BaseSetupFragment {
         return null;
     }
 
+    /** Figma Field: 필드 제목 + 흰 카드(높이 100, 모서리 32) 안에 값과 파란 '바꾸기'. */
     private TextView placeRow(LinearLayout list, String label, View.OnClickListener onChange) {
+        list.addView(Choices.sectionTitle(requireContext(), label));
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        row.setPadding(0, Choices.dp(requireContext(), 8), 0, Choices.dp(requireContext(), 8));
-        LinearLayout texts = new LinearLayout(requireContext());
-        texts.setOrientation(LinearLayout.VERTICAL);
-        TextView l = new TextView(requireContext());
-        l.setTextAppearance(R.style.Text_Caption);
-        l.setText(label);
+        row.setBackgroundResource(R.drawable.bg_card);
+        row.setMinimumHeight(Choices.dp(requireContext(), 100));
+        int pad = Choices.dp(requireContext(), 32);
+        row.setPadding(pad, 0, pad, 0);
         TextView value = new TextView(requireContext());
-        value.setTextAppearance(R.style.Text_Headline);
-        texts.addView(l);
-        texts.addView(value);
-        row.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        MaterialButton change = new MaterialButton(requireContext(), null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        value.setTextAppearance(R.style.Text_Body);
+        row.addView(value, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        TextView change = new TextView(requireContext());
+        change.setTextAppearance(R.style.Text_Body);
+        change.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.pleos_accent));
         change.setText("바꾸기");
-        change.setOnClickListener(onChange);
+        change.setPadding(Choices.dp(requireContext(), 16), Choices.dp(requireContext(), 24), 0, Choices.dp(requireContext(), 24));
         row.addView(change);
-        list.addView(row);
+        row.setOnClickListener(onChange);
+        change.setOnClickListener(onChange);
+        list.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         return value;
+    }
+
+    /** Figma Quick Picks: 목적지 아래 작은 칩(높이 64, 간격 12). 선택 시 검은 배경. */
+    private Runnable addQuickPicks(LinearLayout list, List<String> names, Set<String> selected, Runnable onChange) {
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        List<TextView> chips = new ArrayList<>();
+        Runnable refresh = () -> {
+            for (int i = 0; i < chips.size(); i++) {
+                boolean on = selected.contains(names.get(i));
+                chips.get(i).setSelected(on);
+                chips.get(i).setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(),
+                        on ? R.color.white : R.color.text_primary));
+            }
+        };
+        for (String name : names) {
+            TextView chip = new TextView(requireContext());
+            chip.setTextAppearance(R.style.Text_Caption);
+            chip.setText(name);
+            chip.setGravity(android.view.Gravity.CENTER);
+            chip.setBackgroundResource(R.drawable.bg_quick_chip);
+            int h = Choices.dp(requireContext(), 24);
+            chip.setPadding(h, 0, h, 0);
+            chip.setOnClickListener(v -> {
+                selected.clear();
+                selected.add(name);
+                refresh.run();
+                onChange.run();
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    Choices.dp(requireContext(), 64));
+            if (!chips.isEmpty()) {
+                lp.setMarginStart(Choices.dp(requireContext(), 12));
+            }
+            row.addView(chip, lp);
+            chips.add(chip);
+        }
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowLp.topMargin = Choices.dp(requireContext(), 12);
+        list.addView(row, rowLp);
+        refresh.run();
+        return refresh;
     }
 
     private void render() {

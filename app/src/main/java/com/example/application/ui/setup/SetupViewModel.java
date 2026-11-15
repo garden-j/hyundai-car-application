@@ -88,6 +88,40 @@ public class SetupViewModel extends ViewModel {
         briefingFor = null;
     }
 
+    /** 일반 주행을 시작한다(연습 목표·긴장도 없이 목적지까지). 안내 수준은 설정값 그대로 쓴다. */
+    public void startGeneralDrive() {
+        start(null);
+        setup.generalDrive = true;
+    }
+
+    /** 일반 주행: 고른 목적지로 바로 가는 경로를 만든다(경유지 없이 내비가 경로를 계산). */
+    public void prepareGeneralDriveRoute() {
+        com.example.application.model.DestinationGoal d = setup.destination;
+        if (d == null || d.destination == null) {
+            return;
+        }
+        RouteCandidate r = new RouteCandidate();
+        r.id = "drive";
+        r.kind = RouteCandidate.Kind.WIDE_EASY;
+        r.title = d.destination.name;
+        r.reason = d.roundTrip ? "다녀오기" : "목적지까지";
+        r.origin = knownOrigin();
+        r.source = "DIRECT";
+        if (d.roundTrip && d.origin != null) {
+            // 왕복: 목적지를 경유지로, 출발지를 최종 목적지로
+            r.waypoints.add(d.destination);
+            r.destination = d.origin;
+        } else {
+            r.destination = d.destination;
+        }
+        if (r.origin != null && r.destination != null) {
+            double km = r.origin.distanceKmTo(d.destination.point);
+            r.distanceKm = Math.round(km * (d.roundTrip ? 2 : 1) * 1.3 * 10) / 10.0;
+            r.minutes = (int) Math.max(1, Math.round(r.distanceKm / 25.0 * 60));
+        }
+        setup.selectedRoute = r;
+    }
+
     // ---- 위치 ----
 
     public void withOrigin(Callback<GeoPoint> callback) {

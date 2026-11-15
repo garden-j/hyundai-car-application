@@ -30,6 +30,10 @@ public class PracticeSetup {
 
     public RouteCandidate selectedRoute;
     public PracticePreset preset;
+    /** 일반 주행(연습 없이 목적지까지): 목적지 → 체크리스트 → 프리셋 → 출발만 거친다. */
+    public boolean generalDrive;
+    /** 출발 화면에서 '주행 시작'으로 내비 안내를 시작했는지. 새 연습을 시작하면 초기화된다. */
+    public boolean naviStarted;
     /** "항목 수정"에서 사용자가 바꾼 값. null 값은 "그대로 두기". */
     public Map<SettingKey, Object> presetOverrides = new EnumMap<>(SettingKey.class);
     /** 동의가 필요한 프리셋 항목(핸들 열선 등)에 동의했는지. */
