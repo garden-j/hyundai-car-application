@@ -29,4 +29,7 @@ public interface VehicleGateway {
 
     /** 출발 전 체크리스트용 차량 상태. */
     void readReadiness(Callback<VehicleReadiness> callback);
+
+    /** 기어·와이퍼·전조등·문·오일·경고등 상태. 항목별 실패는 null로 채워 성공으로 전달한다. */
+    void readStatus(Callback<VehicleStatus> callback);
 }

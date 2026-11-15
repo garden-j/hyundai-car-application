@@ -87,4 +87,16 @@ public class FakeVehicleGateway implements VehicleGateway {
         // 데모: 첫 확인 이후 운전자가 안전벨트를 맨 것으로 가정
         readiness.driverSeatBeltBuckled = true;
     }
+
+    @Override
+    public void readStatus(Callback<VehicleStatus> callback) {
+        VehicleStatus st = new VehicleStatus();
+        st.gear = VehicleStatus.Gear.PARK;
+        st.wiperOn = false;
+        st.lowBeamOn = false;
+        st.allDoorsClosed = true;
+        st.engineOil = "NORMAL";
+        st.brakeFluid = "NORMAL";
+        MainThread.post(() -> callback.onSuccess(st));
+    }
 }

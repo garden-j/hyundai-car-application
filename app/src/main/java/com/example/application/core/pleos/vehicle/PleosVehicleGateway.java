@@ -283,6 +283,74 @@ public class PleosVehicleGateway implements VehicleGateway {
     }
 
     /** 여러 비동기 읽기가 모두 끝나면(성공/실패 무관) 한 번만 완료 콜백을 부른다. */
+    @Override
+    public void readStatus(Callback<VehicleStatus> callback) {
+        VehicleStatus st = new VehicleStatus();
+        AtomicInteger openDoors = new AtomicInteger();
+        AtomicInteger knownDoors = new AtomicInteger();
+        Join join = new Join(6 + DOORS.length, () -> {
+            if (knownDoors.get() > 0) {
+                st.allDoorsClosed = openDoors.get() == 0;
+            }
+            callback.onSuccess(st);
+        });
+        vehicle.getGear().getCurrentGearSelectionState(
+                Kt.f1(g -> join.done(() -> st.gear = gear(g))),
+                Kt.f1(e -> join.failed("gear", e)));
+        vehicle.getWiper().getCurrentWiperState(WINDSHIELD,
+                Kt.f1(w -> join.done(() -> st.wiperOn = w == ai.pleos.playground.vehicle.constant.control.WiperState.ON)),
+                Kt.f1(e -> join.failed("wiper", e)));
+        vehicle.getLight().getCurrentLowBeamLightState(
+                Kt.f1(l -> join.done(() -> st.lowBeamOn = l == ai.pleos.playground.vehicle.constant.control.LightState.ON)),
+                Kt.f1(e -> join.failed("lowBeam", e)));
+        vehicle.getSafety().getEngineOilLevelState(
+                Kt.f1(o -> join.done(() -> st.engineOil = o == null ? null : o.name())),
+                Kt.f1(e -> join.failed("engineOil", e)));
+        vehicle.getSafety().getBrakeFluidLevelState(
+                Kt.f1(o -> join.done(() -> st.brakeFluid = o == null ? null : o.name())),
+                Kt.f1(e -> join.failed("brakeFluid", e)));
+        vehicle.getSafety().getTelltalesInfo(
+                Kt.f1(t -> join.done(() -> {
+                    if (t != null && t.getTelltales() != null) {
+                        for (ai.pleos.playground.vehicle.api.model.telltale.TelltaleData d : t.getTelltales()) {
+                            if (d.getState() != null && d.getState() != ai.pleos.playground.vehicle.constant.telltale.TelltaleState.OFF
+                                    && d.getType() != null) {
+                                st.warnings.add(d.getType().name());
+                            }
+                        }
+                    }
+                })),
+                Kt.f1(e -> join.failed("telltales", e)));
+        for (DoorValue v : DOORS) {
+            vehicle.getDoor().getCurrentDoorPosition(new DoorArea(v),
+                    Kt.f1(pos -> join.done(() -> {
+                        knownDoors.incrementAndGet();
+                        if (pos != null && pos > 0) {
+                            openDoors.incrementAndGet();
+                        }
+                    })),
+                    Kt.f1(e -> join.failed("door", e)));
+        }
+    }
+
+    private static VehicleStatus.Gear gear(ai.pleos.playground.vehicle.constant.control.VehicleGear g) {
+        if (g == null) {
+            return VehicleStatus.Gear.UNKNOWN;
+        }
+        switch (g) {
+            case GEAR_PARK:
+                return VehicleStatus.Gear.PARK;
+            case GEAR_REVERSE:
+                return VehicleStatus.Gear.REVERSE;
+            case GEAR_NEUTRAL:
+                return VehicleStatus.Gear.NEUTRAL;
+            case GEAR_DRIVE:
+                return VehicleStatus.Gear.DRIVE;
+            default:
+                return VehicleStatus.Gear.UNKNOWN;
+        }
+    }
+
     private static final class Join {
         private final AtomicInteger remaining;
         private final AtomicBoolean finished = new AtomicBoolean(false);
