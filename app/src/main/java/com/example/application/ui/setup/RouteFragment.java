@@ -8,14 +8,13 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.application.R;
-import com.example.application.domain.RouteDifficultyScorer;
+import com.example.application.di.ServiceLocator;
 import com.example.application.domain.SetupStep;
 import com.example.application.domain.VoiceCommandParser;
 import com.example.application.model.RouteCandidate;
 import com.example.application.ui.common.Choices;
 import com.example.application.ui.common.Resource;
 import com.example.application.ui.common.RoutePreviewView;
-import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,11 +26,13 @@ import java.util.Locale;
  */
 public class RouteFragment extends BaseSetupFragment {
     private RoutePreviewView preview;
-    private LinearLayout cardRow;
+    private android.widget.Button naviPreview;
+    /** 내비 경로 전체 보기를 띄웠는지. 앱으로 돌아오면 안내를 취소한다(주행은 출발 화면에서 시작). */
+    private boolean previewingInNavi;
+
+    private LinearLayout cardArea;
     private TextView status;
-    private TextView factors;
-    private com.google.android.material.button.MaterialButton naviPreview;
-    private final List<MaterialCardView> cards = new ArrayList<>();
+    private final List<View> cards = new ArrayList<>();
     private List<RouteCandidate> routes = new ArrayList<>();
 
     @Override
@@ -41,41 +42,37 @@ public class RouteFragment extends BaseSetupFragment {
 
     @Override
     protected View onCreateContent(LayoutInflater inflater, ViewGroup container) {
-        setTitle("이 길은\n어떠세요?", "연습에 알맞은 길을 골랐어요.");
-        enableVoice("첫 번째 길로 할래");
-        setPrimary("이 길로 갈게요", this::sendToNavi);
-        setSecondary("다시 찾기", () -> setupVm().loadRoutes(true));
+        setTitle("이 길은 어떠세요?", "연습에 맞는 길을 세 가지 골랐어요.");
+        enableVoice("첫 번째로 할게");
+        // 내비 안내는 모든 설정을 마친 뒤 출발 화면의 '주행 시작'에서 시작한다
+        setPrimary("이 길로 할게요", this::goNext);
 
         LinearLayout list = scrollList(inflater);
+        // 고른 경로 미리보기: 상세 버전은 실제 도로 모양, 기본 버전은 들를 지점만 보여 주는 개략도
         preview = new RoutePreviewView(requireContext());
-        list.addView(preview, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                Choices.dp(requireContext(), 200)));
-        // 기본 버전(추정 경로)은 실제 도로 모양을 그릴 수 없어, Pleos 내비의 경로 전체 보기로 확인하게 한다
-        naviPreview = new com.google.android.material.button.MaterialButton(requireContext(), null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle);
-        naviPreview.setText("내비에서 실제 경로 보기");
-        naviPreview.setTextAppearance(R.style.Text_Body);
-        naviPreview.setMinHeight(getResources().getDimensionPixelSize(R.dimen.touch_min));
+        preview.setBackgroundResource(R.drawable.bg_card);
+        LinearLayout.LayoutParams previewLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, Choices.dp(requireContext(), 300));
+        previewLp.topMargin = Choices.dp(requireContext(), 40);
+        list.addView(preview, previewLp);
+        // 기본 버전: 앱에서 실제 도로를 그릴 수 없어 내비 화면에서 확인만 하고 돌아온다
+        naviPreview = new android.widget.Button(requireContext(), null, 0, R.style.Button_Secondary);
+        naviPreview.setText("내비에서 경로 보기");
         naviPreview.setOnClickListener(v -> showInNavi());
-        naviPreview.setVisibility(View.GONE);
-        LinearLayout.LayoutParams naviLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        naviLp.topMargin = Choices.dp(requireContext(), 8);
+        LinearLayout.LayoutParams naviLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, getResources().getDimensionPixelSize(R.dimen.touch_min));
+        naviLp.topMargin = Choices.dp(requireContext(), 40);
         list.addView(naviPreview, naviLp);
+        list.addView(Choices.sectionTitle(requireContext(), "추천 경로"));
         status = new TextView(requireContext());
         status.setTextAppearance(R.style.Text_Body);
-        status.setPadding(0, Choices.dp(requireContext(), 12), 0, 0);
+        status.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.text_secondary));
         list.addView(status);
-        cardRow = new LinearLayout(requireContext());
-        cardRow.setOrientation(LinearLayout.HORIZONTAL);
-        list.addView(cardRow);
-        factors = new TextView(requireContext());
-        factors.setTextAppearance(R.style.Text_Caption);
-        factors.setPadding(Choices.dp(requireContext(), 8), Choices.dp(requireContext(), 8), 0, 0);
-        list.addView(factors);
+        cardArea = new LinearLayout(requireContext());
+        cardArea.setOrientation(LinearLayout.VERTICAL);
+        list.addView(cardArea);
 
         setupVm().routes().observe(getViewLifecycleOwner(), this::render);
-        setupVm().naviRequest().observe(getViewLifecycleOwner(), this::onNaviResult);
         setupVm().loadRoutes(false);
         return null;
     }
@@ -85,44 +82,87 @@ public class RouteFragment extends BaseSetupFragment {
             return;
         }
         if (res.state == Resource.State.LOADING) {
-            status.setText("연습하기 좋은 길을 찾고 있어요…");
-            cardRow.removeAllViews();
+            setStatus("연습하기 좋은 길을 찾고 있어요…");
+            cardArea.removeAllViews();
             setPrimaryEnabled(false);
             return;
         }
         if (res.state == Resource.State.ERROR) {
-            status.setText(res.error);
+            setStatus(res.error);
             setPrimaryEnabled(false);
             askOrigin();
             return;
         }
         routes = res.data;
-        status.setText(setup().isHighTension() ? "긴장도를 반영해 쉬운 길을 먼저 보여드려요." : "");
+        setStatus(setup().isHighTension() ? "긴장도를 반영해 쉬운 길을 먼저 보여 드려요." : null);
         LayoutInflater inflater = LayoutInflater.from(requireContext());
-        cardRow.removeAllViews();
+        cardArea.removeAllViews();
         cards.clear();
         for (int i = 0; i < routes.size(); i++) {
             RouteCandidate r = routes.get(i);
-            View v = inflater.inflate(R.layout.item_route_card, cardRow, false);
-            ((TextView) v.findViewById(R.id.route_no)).setText(String.valueOf(i + 1));
-            ((TextView) v.findViewById(R.id.route_title)).setText(r.title);
-            ((TextView) v.findViewById(R.id.route_reason)).setText(r.reason);
-            ((TextView) v.findViewById(R.id.route_minutes)).setText(r.minutes + "분");
-            ((TextView) v.findViewById(R.id.route_distance)).setText(
-                    String.format(Locale.KOREA, "%.1f km", r.distanceKm));
-            ((TextView) v.findViewById(R.id.route_level)).setText(
-                    "난이도 " + RouteDifficultyScorer.levelLabel(r.difficultyScore) + " · " + r.difficultyScore + "점");
-            MaterialCardView card = (MaterialCardView) v;
+            View card = inflater.inflate(R.layout.item_option_card, cardArea, false);
+            ((TextView) card.findViewById(R.id.card_title)).setText(r.title);
+            ((TextView) card.findViewById(R.id.card_desc)).setText(r.reason + "\n"
+                    + r.minutes + "분 · " + String.format(Locale.KOREA, "%.1f km", r.distanceKm));
             int index = i;
             card.setOnClickListener(x -> select(index));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            lp.setMargins(Choices.dp(requireContext(), 6), Choices.dp(requireContext(), 12),
-                    Choices.dp(requireContext(), 6), 0);
-            cardRow.addView(card, lp);
             cards.add(card);
         }
+        Choices.addGrid(cardArea, cards, Choices.isWide(requireContext()) ? 3 : 1);
         int selected = routes.indexOf(setup().selectedRoute);
         select(selected >= 0 ? selected : 0);
+    }
+
+    /** 선택한 경로를 내비의 경로 전체 보기로 띄운다. 돌아오면(직접 또는 20초 뒤 자동) onStart에서 안내를 취소한다. */
+    private void showInNavi() {
+        RouteCandidate r = setup().selectedRoute;
+        if (r == null) {
+            return;
+        }
+        naviPreview.setEnabled(false);
+        setStatus("내비게이션에서 경로를 여는 중이에요…");
+        // 앱이 앞에 있을 때 시작해야 한다: 20초 뒤 안내를 취소하고 앱으로 돌아오게 하는 서비스
+        com.example.application.core.pleos.navi.NaviPreviewService.start(requireContext());
+        previewingInNavi = true;
+        services().navi.showRouteOverview(r, new com.example.application.core.Callback<Void>() {
+            @Override
+            public void onSuccess(Void value) {
+                previewingInNavi = true;
+                if (isAdded()) {
+                    naviPreview.setEnabled(true);
+                    setStatus("경로를 보여 드린 뒤 20초 후 이 화면으로 돌아와요.");
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                // 경로가 설정됐다면 내비 화면에는 떠 있으므로, 돌아오면 취소한다
+                previewingInNavi = true;
+                if (isAdded()) {
+                    naviPreview.setEnabled(true);
+                    setStatus(null);
+                    toast("내비게이션에서 경로를 열지 못했어요. " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    /** 앱 화면이 다시 보이면(직접 돌아오거나 20초 뒤 자동 복귀) 내비 안내를 취소한다. */
+    @Override
+    public void onStart() {
+        super.onStart();
+        com.example.application.core.pleos.navi.NaviPreviewService.stop(requireContext());
+        if (previewingInNavi) {
+            previewingInNavi = false;
+            services().navi.cancelRoute();
+            setStatus("경로를 확인했어요. 안내는 출발 화면에서 '주행 시작'을 누르면 시작돼요.");
+        }
+    }
+
+    private void setStatus(String text) {
+        status.setText(text);
+        status.setVisibility(text == null || text.isEmpty() ? View.GONE : View.VISIBLE);
+        status.setPadding(0, 0, 0, text == null ? 0 : Choices.dp(requireContext(), 16));
     }
 
     /** 현재 위치를 모를 때(권한 거부 등) 출발지를 직접 고르게 한다. */
@@ -148,80 +188,17 @@ public class RouteFragment extends BaseSetupFragment {
         }
         RouteCandidate r = routes.get(index);
         setup().selectedRoute = r;
+        // 상세 버전만 실제 도로 모양을 보여 준다. 기본 버전은 그림 대신 '내비에서 경로 보기'
+        boolean real = !r.isEstimated();
+        preview.setVisibility(real ? View.VISIBLE : View.GONE);
+        naviPreview.setVisibility(real ? View.GONE : View.VISIBLE);
+        if (real) {
+            preview.setRoute(r.previewPath, null);
+        }
         for (int i = 0; i < cards.size(); i++) {
-            cards.get(i).setChecked(i == index);
-            cards.get(i).setStrokeWidth(Choices.dp(requireContext(), i == index ? 3 : 1));
+            Choices.setOptionSelected(cards.get(i), i == index);
         }
-        preview.setSchematic(r.isEstimated());
-        preview.setRoute(r.previewPath, null);
-        naviPreview.setVisibility(r.isEstimated() ? View.VISIBLE : View.GONE);
-        factors.setText("점수 근거: " + String.join(", ", r.scoreFactors));
         setPrimaryEnabled(true);
-    }
-
-    /** 선택한 경로를 내비에 보내고 경로 전체 보기를 띄운다. 돌아오면 그대로 이 화면에서 계속한다. */
-    private void showInNavi() {
-        RouteCandidate r = setup().selectedRoute;
-        if (r == null) {
-            return;
-        }
-        naviPreview.setEnabled(false);
-        status.setText("내비게이션에서 경로를 여는 중이에요…");
-        services().navi.showRouteOverview(r, new com.example.application.core.Callback<Void>() {
-            @Override
-            public void onSuccess(Void value) {
-                if (!isAdded()) {
-                    return;
-                }
-                naviPreview.setEnabled(true);
-                status.setText("내비게이션에서 실제 경로를 확인한 뒤 이 화면으로 돌아오세요.");
-            }
-
-            @Override
-            public void onError(Exception e) {
-                if (!isAdded()) {
-                    return;
-                }
-                naviPreview.setEnabled(true);
-                status.setText("");
-                toast("내비게이션에서 경로를 열지 못했어요. " + e.getMessage());
-            }
-        });
-    }
-
-    private void sendToNavi() {
-        if (!check(com.example.application.domain.SetupFlow.validate(step(), setup()))) {
-            return;
-        }
-        setupVm().sendRouteToNavi();
-    }
-
-    private void onNaviResult(Resource<Void> res) {
-        if (res == null) {
-            return;
-        }
-        switch (res.state) {
-            case LOADING:
-                setPrimaryEnabled(false);
-                status.setText("내비게이션에 경로를 보내고 있어요…");
-                break;
-            case SUCCESS:
-                setupVm().clearNaviRequest();
-                setPrimaryEnabled(true);
-                goNext();
-                break;
-            case ERROR:
-                setupVm().clearNaviRequest();
-                setPrimaryEnabled(true);
-                status.setText("");
-                new AlertDialog.Builder(requireContext())
-                        .setTitle("내비게이션에 경로를 보내지 못했어요")
-                        .setMessage(res.error + "\n브리핑은 계속 볼 수 있고, 내비게이션은 나중에 직접 설정할 수 있어요.")
-                        .setPositiveButton("다시 시도", (d, w) -> setupVm().sendRouteToNavi())
-                        .setNegativeButton("그대로 진행", (d, w) -> goNext())
-                        .show();
-                break;
-        }
     }
 
     @Override
