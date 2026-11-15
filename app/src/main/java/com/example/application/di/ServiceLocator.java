@@ -19,6 +19,7 @@ import com.example.application.core.pleos.voice.PleosSttGateway;
 import com.example.application.core.pleos.voice.PleosTtsGateway;
 import com.example.application.core.pleos.voice.SttGateway;
 import com.example.application.core.pleos.voice.TtsGateway;
+import com.example.application.core.pleos.voice.UnavailableSttGateway;
 import com.example.application.core.vehiclecontrol.PresetController;
 import com.example.application.data.ConsentRepository;
 import com.example.application.data.JsonStore;
@@ -120,8 +121,10 @@ public final class ServiceLocator {
         try {
             stt.connect();
         } catch (RuntimeException e) {
-            Log.e(TAG, "Pleos STT connect failed, using Android STT", e);
-            stt = new AndroidSttGateway(context);
+            // 공모전 규정: 차량 마이크 음성을 외부 음성 인식 서비스로 보낼 수 없다.
+            // Pleos 환경에서는 안드로이드 기본 인식(구글 서버)으로 대체하지 않고 음성 입력만 끈다.
+            Log.e(TAG, "Pleos STT connect failed, voice input disabled", e);
+            stt = stt instanceof PleosSttGateway ? new UnavailableSttGateway() : new AndroidSttGateway(context);
         }
         presets = new PresetController(vehicle);
     }

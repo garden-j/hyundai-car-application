@@ -94,6 +94,7 @@ public class PleosTtsGateway extends QueuedTts {
                             new OnServerConnectionListener() {
                                 @Override
                                 public void onConnected() {
+                                    Log.i(TAG, "server registration ok (HYBRID)");
                                     onReady();
                                 }
 

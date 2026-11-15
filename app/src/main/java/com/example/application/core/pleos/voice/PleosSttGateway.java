@@ -111,6 +111,7 @@ public class PleosSttGateway implements SttGateway {
                             new OnServerConnectionListener() {
                                 @Override
                                 public void onConnected() {
+                                    Log.i(TAG, "server registration ok (HYBRID)");
                                 }
 
                                 @Override

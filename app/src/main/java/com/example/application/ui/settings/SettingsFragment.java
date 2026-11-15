@@ -56,7 +56,8 @@ public class SettingsFragment extends BaseStepFragment {
         Rows.add(list, null, "Vehicle", null, sl.vehicle.isSimulated() ? "시뮬레이션" : "Pleos 연결");
         Rows.add(list, null, "NaviHelper", null, sl.navi.isSimulated() ? "시뮬레이션" : "Pleos 연결");
         Rows.add(list, null, "FusedLocation", null, sl.location.isSimulated() ? "시뮬레이션" : "Pleos 연결");
-        Rows.add(list, null, "음성(TTS·STT)", null, sl.tts.isSimulated() ? "안드로이드 기본" : "Pleos 연결");
+        Rows.add(list, null, "음성 안내(TTS)", null, sl.tts.isSimulated() ? "안드로이드 기본" : "Pleos 연결");
+        Rows.add(list, null, "음성 인식(STT)", null, sl.stt.isSimulated() ? "사용 불가" : "Pleos 연결");
         return null;
     }
 
