@@ -43,6 +43,8 @@ public class PleosNaviGateway implements NaviGateway {
     private final Runnable timeout = () -> finish(new IllegalStateException("내비게이션 응답이 없어요"));
 
     private volatile DriveListener driveListener;
+    /** 내비가 지금 경로를 안내 중인지(취소를 보내도 되는지). */
+    private volatile boolean routeActive;
 
     private final NaviHelperEventListener listener = new NaviHelperEventListener() {
         @Override
@@ -81,6 +83,7 @@ public class PleosNaviGateway implements NaviGateway {
 
         @Override
         public void onDestinationArrived(DestinationArrivedInfo info) {
+            routeActive = false;
             DriveListener l = driveListener;
             if (l != null) {
                 MainThread.post(l::onArrived);
@@ -89,11 +92,23 @@ public class PleosNaviGateway implements NaviGateway {
 
         @Override
         public void onRouteStarted(RouteStartInfo routeStartInfo) {
+            routeActive = true;
             MainThread.post(() -> finish(null));
         }
 
         @Override
+        public void onRouteCancelled() {
+            routeActive = false;
+        }
+
+        @Override
+        public void onRouteEnded() {
+            routeActive = false;
+        }
+
+        @Override
         public void onRoutingCompleted() {
+            routeActive = true;
             MainThread.post(() -> finish(null));
         }
 
@@ -274,6 +289,14 @@ public class PleosNaviGateway implements NaviGateway {
 
     @Override
     public void cancelRoute() {
+        // 안내 중인 경로가 없을 때 취소를 보내면 내비가 NOT_CANCEL_ABLE_TRIP으로 실패하면서
+        // 내부 상태가 멈춰, 이후 내비 화면의 '안내 종료'가 동작하지 않는다(에뮬레이터 v2.1.0에서 재현).
+        // 그래서 실제로 안내 중일 때만 보낸다.
+        if (!routeActive) {
+            Log.i(TAG, "cancelRoute skipped: no active route");
+            return;
+        }
+        routeActive = false;
         navi.cancelRoute();
     }
 
