@@ -15,4 +15,10 @@ public interface NaviGateway {
     void startRoute(RouteCandidate route, Callback<Void> callback);
 
     void cancelRoute();
+
+    /**
+     * 내비게이션 앱에서 경로 전체 보기를 띄운다(실제 도로 경로 확인용).
+     * 전체 보기는 설정된 경로가 있어야 하므로 경로를 먼저 보내고, 탐색이 끝나면 전체 보기 화면을 요청한다.
+     */
+    void showRouteOverview(RouteCandidate route, Callback<Void> callback);
 }

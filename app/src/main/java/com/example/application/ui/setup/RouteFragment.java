@@ -30,6 +30,7 @@ public class RouteFragment extends BaseSetupFragment {
     private LinearLayout cardRow;
     private TextView status;
     private TextView factors;
+    private com.google.android.material.button.MaterialButton naviPreview;
     private final List<MaterialCardView> cards = new ArrayList<>();
     private List<RouteCandidate> routes = new ArrayList<>();
 
@@ -49,6 +50,18 @@ public class RouteFragment extends BaseSetupFragment {
         preview = new RoutePreviewView(requireContext());
         list.addView(preview, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 Choices.dp(requireContext(), 200)));
+        // 기본 버전(추정 경로)은 실제 도로 모양을 그릴 수 없어, Pleos 내비의 경로 전체 보기로 확인하게 한다
+        naviPreview = new com.google.android.material.button.MaterialButton(requireContext(), null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        naviPreview.setText("내비에서 실제 경로 보기");
+        naviPreview.setTextAppearance(R.style.Text_Body);
+        naviPreview.setMinHeight(getResources().getDimensionPixelSize(R.dimen.touch_min));
+        naviPreview.setOnClickListener(v -> showInNavi());
+        naviPreview.setVisibility(View.GONE);
+        LinearLayout.LayoutParams naviLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        naviLp.topMargin = Choices.dp(requireContext(), 8);
+        list.addView(naviPreview, naviLp);
         status = new TextView(requireContext());
         status.setTextAppearance(R.style.Text_Body);
         status.setPadding(0, Choices.dp(requireContext(), 12), 0, 0);
@@ -139,9 +152,41 @@ public class RouteFragment extends BaseSetupFragment {
             cards.get(i).setChecked(i == index);
             cards.get(i).setStrokeWidth(Choices.dp(requireContext(), i == index ? 3 : 1));
         }
+        preview.setSchematic(r.isEstimated());
         preview.setRoute(r.previewPath, null);
+        naviPreview.setVisibility(r.isEstimated() ? View.VISIBLE : View.GONE);
         factors.setText("점수 근거: " + String.join(", ", r.scoreFactors));
         setPrimaryEnabled(true);
+    }
+
+    /** 선택한 경로를 내비에 보내고 경로 전체 보기를 띄운다. 돌아오면 그대로 이 화면에서 계속한다. */
+    private void showInNavi() {
+        RouteCandidate r = setup().selectedRoute;
+        if (r == null) {
+            return;
+        }
+        naviPreview.setEnabled(false);
+        status.setText("내비게이션에서 경로를 여는 중이에요…");
+        services().navi.showRouteOverview(r, new com.example.application.core.Callback<Void>() {
+            @Override
+            public void onSuccess(Void value) {
+                if (!isAdded()) {
+                    return;
+                }
+                naviPreview.setEnabled(true);
+                status.setText("내비게이션에서 실제 경로를 확인한 뒤 이 화면으로 돌아오세요.");
+            }
+
+            @Override
+            public void onError(Exception e) {
+                if (!isAdded()) {
+                    return;
+                }
+                naviPreview.setEnabled(true);
+                status.setText("");
+                toast("내비게이션에서 경로를 열지 못했어요. " + e.getMessage());
+            }
+        });
     }
 
     private void sendToNavi() {

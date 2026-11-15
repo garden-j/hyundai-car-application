@@ -45,4 +45,9 @@ public class RouteCandidate {
     public List<BriefingPoint> briefing;
     /** 경로 출처: "KAKAO"(서버·실제 도로) 또는 null(기기 내 추정). */
     public String source;
+
+    /** 실제 도로 데이터 없이 기기에서 추정한 경로인지(기본 버전). 상세 버전 경로는 source가 "KAKAO". */
+    public boolean isEstimated() {
+        return !"KAKAO".equals(source);
+    }
 }

@@ -15,7 +15,9 @@ import ai.pleos.playground.navi.constants.NaviErrorCode;
 import ai.pleos.playground.navi.constants.RouteOption;
 import ai.pleos.playground.navi.constants.WaypointIndex;
 import ai.pleos.playground.navi.data.RequestWaypointInfo;
+import ai.pleos.playground.navi.data.NavigationScreenRequest;
 import ai.pleos.playground.navi.data.RouteInfo;
+import ai.pleos.playground.navi.data.RouteOverviewShowInfo;
 import ai.pleos.playground.navi.data.RouteStartInfo;
 import ai.pleos.playground.navi.data.RouteWithWaypointsRequest;
 import ai.pleos.playground.navi.helper.NaviHelper;
@@ -101,6 +103,28 @@ public class PleosNaviGateway implements NaviGateway {
     private static RouteInfo routeInfo(Place p) {
         return new RouteInfo(p.point.latitude, p.point.longitude, null, null,
                 p.name, "", p.address, "", RouteOption.RECOMMENDED, "", false);
+    }
+
+    @Override
+    public void showRouteOverview(RouteCandidate route, Callback<Void> callback) {
+        startRoute(route, new Callback<Void>() {
+            @Override
+            public void onSuccess(Void value) {
+                try {
+                    navi.requestNavigationScreen(
+                            new NavigationScreenRequest.OverviewRoute(new RouteOverviewShowInfo()));
+                    callback.onSuccess(null);
+                } catch (RuntimeException e) {
+                    Log.w(TAG, "overview request failed", e);
+                    callback.onError(e);
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                callback.onError(e);
+            }
+        });
     }
 
     @Override

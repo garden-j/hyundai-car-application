@@ -30,6 +30,12 @@ public class FakeNaviGateway implements NaviGateway {
     }
 
     @Override
+    public void showRouteOverview(RouteCandidate route, Callback<Void> callback) {
+        Log.i(TAG, "showRouteOverview (simulated)");
+        MainThread.postDelayed(() -> callback.onSuccess(null), 300);
+    }
+
+    @Override
     public void cancelRoute() {
         Log.i(TAG, "cancelRoute");
     }

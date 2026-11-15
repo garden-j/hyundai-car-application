@@ -20,6 +20,8 @@
     <!-- Pleos NaviHelper SDK -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+    <!-- 내비 화면 요청(경로 전체 보기). 기본 버전에서 실제 도로 경로를 내비로 보여줄 때 사용 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_MAP" />
     <!-- Pleos FusedLocation SDK -->
     <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" />
     <!-- Pleos TextToSpeech / SpeechToText (문서에는 없지만 SDK가 initialize()에서 검사함) -->
