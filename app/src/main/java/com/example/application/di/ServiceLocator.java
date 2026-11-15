@@ -112,10 +112,10 @@ public final class ServiceLocator {
         return api != null;
     }
 
-    /** 상세 버전(서버 사용) 여부. 기본값은 기본 버전(서버 미사용). */
+    /** 상세 버전(카카오·기상청 사용) 여부. 사용자가 고르지 않았으면 상세 버전이 기본값. */
     public boolean isDetailedMode() {
         Boolean on = store.read(KEY_DETAILED_MODE, Boolean.class);
-        return api != null && Boolean.TRUE.equals(on);
+        return api != null && !Boolean.FALSE.equals(on);
     }
 
     public void setDetailedMode(boolean on) {
