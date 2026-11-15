@@ -1,8 +1,21 @@
 # 차차 — 초보 운전 연습 환경 제공 (Pleos Connect 차량용 앱)
 
-초보 운전자가 **연습 목표·긴장도에 맞는 연습 경로**를 고르고, 출발 전에 **복잡 구간 브리핑·준비 체크리스트·연습 모드 차량 환경**까지 갖춘 뒤 출발하도록 돕는 Pleos Connect 앱입니다.
+차차(Step by Step, Drive by Drive)는 초보 운전자가 과한 긴장 상태를 벗어나 계속해서 주행 연습을 할 수 있도록 통합적인 운전 환경을 제공해주는 앱 서비스 입니다.
 
 > 현대자동차그룹 차량용 앱 개발 공모전 출품작 · Android(Java) · Pleos Connect SDK
+
+## 제출 APK
+
+| 항목 | 내용 |
+|---|---|
+| 위치 | [`apk/차근차근_차차_release.apk`](apk/차근차근_차차_release.apk) (팀 차근차근 · 앱 차차) |
+| 빌드 | release 빌드(서명됨) |
+| 패키지명 | `com.chacha.app` |
+| 실행 환경 | Pleos Connect Emulator v2.1.0 (화면 2560×1440, 앱 영역 1682×1210) |
+
+```bash
+adb install -r "apk/차근차근_차차_release.apk"
+```
 
 ## 현재 구현 범위 (2단계: 출발 전 흐름)
 
@@ -77,11 +90,6 @@
 ./gradlew :app:connectedDebugAndroidTest    # Pleos 에뮬레이터 연동·UI 스모크 테스트 3개
 ```
 
-## 백엔드 (선택)
-
-상세 버전의 분석 로직은 앱 안(`data/direct/`)에서 실행되므로 **서버 없이 동작**합니다.
-`backend/` 폴더에는 같은 로직을 Spring Boot 서버로 제공하는 버전이 있습니다. 키를 서버에만 두고 싶을 때 `local.properties`에서 `kakao.restApiKey`를 비우고 `api.baseUrl`에 서버 주소를 넣으면 앱이 서버를 사용합니다. 자세한 내용은 [`backend/README.md`](backend/README.md)를 보세요.
-
 ## 구조
 
 ```
@@ -103,18 +111,3 @@ app/src/main/java/com/example/application/
 ├── model/                             # 도메인 모델
 └── ui/                                # 화면(Fragment): onboarding · home · setup · depart · settings
 ```
-
-- 경로 추천·장소 검색·날씨는 상세 버전일 때 `data/direct/DirectApiClient`가 카카오·기상청을 직접 호출하고, 실패하면 기기 내 로직으로 자동 전환합니다.
-- 디자인은 Figma '연습주행_가로세로'(가로 1700 / 세로 840 기준)를 따릅니다. 색·글자 크기·간격은 `res/values`의 pleos 토큰, 글꼴은 Pleos 시스템 글꼴 Asta Sans(시스템 이름 `pretendard`)를 씁니다. 앱 영역 폭이 1100dp보다 좁으면 세로(P) 배치로 바뀝니다.
-
-## Pleos SDK 사용 시 확인한 점 (문서와 다른 부분)
-
-- `TextToSpeech`/`SpeechToText`는 `pleos.car.permission.TTS_SERVICE` / `STT_SERVICE` 선언이 필요합니다(없으면 `initialize()`에서 SecurityException).
-- `pleos.car.permission.FUSED_LOCATION`은 **dangerous** 보호 수준이라 런타임 권한 요청이 필요합니다.
-- `NaviHelper.requestNavigationScreen()`(예: 경로 전체 보기 `OverviewRoute`)은 문서에 없는 `pleos.car.permission.NAVI_CUSTOM_MAP` 권한이 필요합니다. 또 경로가 설정돼 있어야 전체 보기가 열려서, 경로를 먼저 보낸 뒤 요청합니다.
-- NaviHelper는 출발 전에 경로의 도로 좌표·회전 목록을 앱에 돌려주지 않습니다(`requestTrip`은 거리·시간·정체 비율만). 그래서 기본 버전은 앱 화면에 실제 경로를 그리지 않고 내비 화면으로 보여 줍니다.
-- 공조 온도·풍량·전원은 운전석 단독 영역(0x1)이 아니라 차량별 공조 구역을 써야 합니다 → `check…Capabilities`로 운전석을 포함하는 영역을 찾아 사용합니다.
-- 공조 전원이 꺼져 있으면 온도를 읽을 수 없습니다(`PropertyNotAvailableException`). 프리셋은 공조 전원을 먼저 켭니다.
-- `EV_BATTERY_LEVEL`은 % 가 아니라 Wh 단위입니다 → `getEvBatteryCapacity()`로 나눠 %로 표시합니다. `RANGE_REMAINING`은 미터 단위입니다.
-- 에뮬레이터 차량은 전기차라 `FUEL_PERCENT`가 지원되지 않습니다.
-- Pleos 런처가 앱을 여러 번 실행할 수 있어 `MainActivity`는 `singleTask`입니다.
