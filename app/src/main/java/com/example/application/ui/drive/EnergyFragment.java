@@ -12,6 +12,7 @@ import com.example.application.core.drive.DriveSession;
 import com.example.application.databinding.ContentScrollBinding;
 import com.example.application.databinding.ItemRowBinding;
 import com.example.application.domain.FuelGuide;
+import com.example.application.domain.Josa;
 import com.example.application.model.GeoPoint;
 import com.example.application.model.Place;
 import com.example.application.ui.common.BaseStepFragment;
@@ -19,6 +20,7 @@ import com.example.application.ui.common.Choices;
 import com.example.application.ui.common.Rows;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -81,6 +83,10 @@ public class EnergyFragment extends BaseStepFragment {
                 status.setText("주변 시설을 찾지 못했어요. 상세 버전에서는 카카오 장소 검색으로 찾아 드려요. 내비게이션에서 직접 검색할 수도 있어요.");
                 return;
             }
+            if (near != null) {
+                // 검색 결과는 정확도순이라 가까운 순으로 다시 정렬한다
+                stations.sort(Comparator.comparingDouble(p -> near.distanceKmTo(p.point)));
+            }
             status.setVisibility(View.GONE);
             for (int i = 0; i < Math.min(5, stations.size()); i++) {
                 Place p = stations.get(i);
@@ -97,7 +103,7 @@ public class EnergyFragment extends BaseStepFragment {
             public void onSuccess(Void value) {
                 DriveSession.get().setWaypointPurpose(DriveSession.WaypointPurpose.ENERGY);
                 DriveSession.get().update(s -> s.energyAlert = null);
-                speak(p.name + "을 경유지로 넣었어요. 도착하면 순서대로 알려 드릴게요.");
+                speak(Josa.eulReul(p.name) + " 경유지로 넣었어요. 도착하면 순서대로 알려 드릴게요.");
                 if (isAdded()) {
                     nav().back();
                 }

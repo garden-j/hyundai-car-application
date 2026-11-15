@@ -59,7 +59,7 @@ public final class RelaxGuide {
     }
 
     public static String restAdded(String placeName) {
-        return placeName + "을 경유지로 넣었어요. 안전하게 들어가서 쉬어요.";
+        return Josa.eulReul(placeName) + " 경유지로 넣었어요. 안전하게 들어가서 쉬어요.";
     }
 
     public static String restartCheck() {

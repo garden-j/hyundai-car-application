@@ -1,7 +1,10 @@
 package com.example.application.ui.drive;
 
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +15,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.application.MainActivity;
+import com.example.application.core.MainThread;
 import com.example.application.core.drive.DriveSession;
 import com.example.application.core.pleos.navi.DriveGuideService;
 import com.example.application.databinding.FragmentDrivingBinding;
@@ -120,6 +124,17 @@ public class DrivingFragment extends Fragment {
         SetupViewModel vm = new ViewModelProvider(activity).get(SetupViewModel.class);
         vm.setup().naviStarted = false;
         ((MainActivity) activity).navigator().push(new EncourageFragment());
+        // 내비는 안내를 취소하면 자기 화면을 앞으로 띄운다. 잠시 뒤 격려 화면이 보이도록 앱을 다시 앞으로 가져온다.
+        Context app = activity.getApplicationContext();
+        MainThread.postDelayed(() -> {
+            try {
+                app.startActivity(new Intent(app, MainActivity.class)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                                | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+            } catch (RuntimeException e) {
+                Log.w("DrivingFragment", "could not bring app to front", e);
+            }
+        }, 1_500);
     }
 
     private com.example.application.ui.Navigator nav() {

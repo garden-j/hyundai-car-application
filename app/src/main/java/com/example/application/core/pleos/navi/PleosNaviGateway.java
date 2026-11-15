@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ai.pleos.playground.navi.constants.NaviErrorCode;
+import ai.pleos.playground.navi.constants.NavigationStatus;
 import ai.pleos.playground.navi.constants.RouteOption;
 import ai.pleos.playground.navi.constants.WaypointIndex;
 import ai.pleos.playground.navi.data.RequestWaypointInfo;
@@ -43,7 +44,10 @@ public class PleosNaviGateway implements NaviGateway {
     private final Runnable timeout = () -> finish(new IllegalStateException("내비게이션 응답이 없어요"));
 
     private volatile DriveListener driveListener;
-    /** 내비가 지금 경로를 안내 중인지(취소를 보내도 되는지). */
+    /**
+     * 내비가 지금 경로를 안내 중인지(취소를 보내도 되는지). 내비가 알려 주는 상태(onNavigationStatus)를 따른다.
+     * onRouteEnded·onRouteCancelled는 경로를 시작하거나 경유지를 넣을 때도 함께 와서(이전 경로 정리) 기준으로 쓰지 않는다.
+     */
     private volatile boolean routeActive;
 
     private final NaviHelperEventListener listener = new NaviHelperEventListener() {
@@ -97,13 +101,11 @@ public class PleosNaviGateway implements NaviGateway {
         }
 
         @Override
-        public void onRouteCancelled() {
-            routeActive = false;
-        }
-
-        @Override
-        public void onRouteEnded() {
-            routeActive = false;
+        public void onNavigationStatus(NavigationStatus status) {
+            Log.i(TAG, "navigation status " + status);
+            if (status != null) {
+                routeActive = status == NavigationStatus.ROUTE_DRIVE;
+            }
         }
 
         @Override
