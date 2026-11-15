@@ -72,7 +72,7 @@ public class DrivingFragment extends Fragment {
             b.alertAction.setOnClickListener(v -> nav().push(new EnergyFragment()));
         } else if (s.envChange != null) {
             b.alert.setVisibility(View.VISIBLE);
-            b.alertText.setText(EnvironmentWatch.label(s.envChange) + " · 초보자에게 편한 길로 바꿀 수 있어요");
+            b.alertText.setText(String.format("%s · 초보자에게 편한 길로 바꿀 수 있어요", EnvironmentWatch.label(s.envChange)));
             b.alertAction.setText("편안한 길로 바꾸기");
             b.alertAction.setOnClickListener(v -> {
                 ServiceLocator.get().navi.useComfortableRoute();
