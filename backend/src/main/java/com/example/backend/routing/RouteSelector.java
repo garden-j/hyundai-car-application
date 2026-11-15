@@ -51,7 +51,12 @@ public final class RouteSelector {
         }
         picked.add(toDto(easy, RouteKind.WIDE_EASY, req, start));
         if (shortest != null) {
-            picked.add(toDto(shortest, RouteKind.SHORTEST, req, start));
+            RouteCandidateDto dto = toDto(shortest, RouteKind.SHORTEST, req, start);
+            if (shortest.route().distanceM() >= easy.route().distanceM()) {
+                // 넓은 길 후보가 더 짧으면 "최단 거리"라고 부르지 않는다.
+                dto = withTitle(dto, "다른 길로 가요");
+            }
+            picked.add(dto);
         }
         if (!challengeFirst && goal != null) {
             picked.add(toDto(goal, RouteKind.GOAL_FOCUSED, req, start));
@@ -65,6 +70,13 @@ public final class RouteSelector {
                     d.destination(), d.waypoints(), d.previewPath(), d.briefing(), d.source()));
         }
         return out;
+    }
+
+    private static RouteCandidateDto withTitle(RouteCandidateDto d, String title) {
+        return new RouteCandidateDto(d.id(), d.kind(), title, d.reason(), d.minutes(), d.distanceKm(),
+                d.laneChanges(), d.complexIntersections(), d.merges(), d.uTurns(), d.leftTurns(), d.parkingSpots(),
+                d.difficultyScore(), d.scoreFactors(), d.origin(), d.destination(), d.waypoints(), d.previewPath(),
+                d.briefing(), d.source());
     }
 
     static List<AnalyzedRoute> dedupe(List<AnalyzedRoute> in) {
@@ -110,7 +122,7 @@ public final class RouteSelector {
             case SHORTEST -> {
                 title = "최단 거리예요";
                 int turns = f.leftTurns() + f.rightTurns() + f.complexIntersections();
-                reason = turns > 0 ? "회전 구간이 " + turns + "곳 있어요" : "가장 짧은 길이에요";
+                reason = turns > 0 ? "회전 구간이 " + turns + "곳 있어요" : "단순한 길이에요";
             }
             default -> {
                 int match = goalMatch(f, req);

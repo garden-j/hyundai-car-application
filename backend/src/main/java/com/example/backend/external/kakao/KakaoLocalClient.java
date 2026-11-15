@@ -29,7 +29,7 @@ public class KakaoLocalClient {
         return props.configured();
     }
 
-    /** near가 있으면 가까운 순으로 정렬한다. */
+    /** 정확도순으로 검색한다. near가 있으면 현재 위치 근처 결과가 위로 오도록 가중치로 쓴다. */
     public List<Place> search(String query, GeoPoint near, int size) {
         if (!props.configured()) {
             throw new ExternalServiceUnavailableException("PLACES_UNAVAILABLE", "카카오 REST API 키가 설정되지 않았어요");
@@ -38,7 +38,7 @@ public class KakaoLocalClient {
                 .queryParam("query", query)
                 .queryParam("size", Math.max(1, Math.min(15, size)));
         if (near != null) {
-            uri.queryParam("x", near.longitude()).queryParam("y", near.latitude()).queryParam("sort", "distance");
+            uri.queryParam("x", near.longitude()).queryParam("y", near.latitude()).queryParam("sort", "accuracy"); // 정확도순(현재 위치는 가중치로만 사용)
         }
         try {
             JsonNode body = http.get().uri(uri.encode().build().toUri())

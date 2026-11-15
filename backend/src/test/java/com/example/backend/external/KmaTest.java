@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.example.backend.api.dto.WeatherDto;
 import com.example.backend.common.ExternalServiceUnavailableException;
 import com.example.backend.external.kma.KmaGrid;
+import com.example.backend.external.kma.KmaProperties;
 
 import org.junit.jupiter.api.Test;
 
@@ -69,5 +70,16 @@ class KmaTest {
                 "{\"response\":{\"header\":{\"resultCode\":\"30\",\"resultMsg\":\"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\"}}}");
         assertThatThrownBy(() -> call("parse", new Class[]{JsonNode.class, ZonedDateTime.class}, node,
                 ZonedDateTime.now())).isInstanceOf(ExternalServiceUnavailableException.class);
+    }
+
+    @Test
+    void picksProviderFromKeyShape() {
+        KmaProperties hub = new KmaProperties("abcdEFGHijklMNOPqrstUV", null);
+        assertThat(hub.nowcastUrl()).contains("apihub.kma.go.kr");
+        assertThat(hub.keyParam()).isEqualTo("authKey");
+
+        KmaProperties portal = new KmaProperties("a".repeat(96), null);
+        assertThat(portal.nowcastUrl()).contains("apis.data.go.kr");
+        assertThat(portal.keyParam()).isEqualTo("serviceKey");
     }
 }

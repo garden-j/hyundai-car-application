@@ -38,7 +38,7 @@ public class KmaWeatherClient {
         }
         ZonedDateTime base = baseTime(now);
         var uri = UriComponentsBuilder.fromUriString(props.nowcastUrl())
-                .queryParam("serviceKey", props.serviceKey())
+                .queryParam(props.keyParam(), props.serviceKey().trim())
                 .queryParam("pageNo", 1)
                 .queryParam("numOfRows", 100)
                 .queryParam("dataType", "JSON")

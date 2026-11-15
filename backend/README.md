@@ -50,12 +50,14 @@ docker run -p 8080:8080 --env-file .env practice-drive-backend
 ### 키 발급
 
 - **카카오 REST API 키**: [developers.kakao.com](https://developers.kakao.com) › 내 애플리케이션 › 앱 키 › REST API 키. 같은 키로 카카오모빌리티 길찾기(`apis-navi.kakaomobility.com`)와 로컬 검색을 호출합니다. 카카오모빌리티 API는 콘솔에서 사용 설정이 필요할 수 있습니다.
-- **기상청 인증키**: [공공데이터포털](https://www.data.go.kr/data/15084084/openapi.do) '기상청_단기예보 조회서비스' 활용 신청 → 일반 인증키(Decoding).
+- **기상청 인증키**: 두 발급처 중 하나. 키 형태(길이)로 자동 판별합니다.
+  - [기상청 API허브](https://apihub.kma.go.kr) authKey(22자): 회원가입 후 '단기예보 조회서비스(VilageFcstInfoService_2.0)'의 초단기실황조회 **활용신청**이 필요합니다.
+  - [공공데이터포털](https://www.data.go.kr/data/15084084/openapi.do) '기상청_단기예보 조회서비스' 활용 신청 → 일반 인증키(Decoding).
 
 ## 테스트
 
 ```bash
-./gradlew test   # 22개: 카카오 응답 파싱, 경로 분석·점수·브리핑, 후보 선택, 기상청 격자·파싱, API(MockMvc)
+./gradlew test   # 23개: 카카오 응답 파싱, 경로 분석·점수·브리핑, 후보 선택, 기상청 격자·파싱, API(MockMvc)
 ```
 
 ## 구조

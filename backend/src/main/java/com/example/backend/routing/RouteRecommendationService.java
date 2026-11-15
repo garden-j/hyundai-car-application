@@ -33,6 +33,8 @@ public class RouteRecommendationService {
     /** 연습 목적지로 현실적인 최대 직선 거리(km). */
     public static final double MAX_PRACTICE_KM = 100;
     static final double[] COURSE_BEARINGS = {30, 150, 270};
+    /** 도심 도로 거리 ÷ 직선 거리의 대략적인 비율(실측 약 1.5~1.7). */
+    static final double ROAD_FACTOR = 1.6;
 
     private final KakaoDirectionsClient directions;
 
@@ -75,9 +77,25 @@ public class RouteRecommendationService {
         return runAll(queries, r -> AnalyzedRoute.of(r, naviWaypoints, naviDest));
     }
 
+    /**
+     * 연습 코스: 출발지에서 세 방향으로 삼각 코스를 만들어 돌아온다.
+     * 실제 도로는 직선보다 길기 때문에 도로 계수로 한 변 길이를 줄이고,
+     * 결과가 요청한 거리·시간과 많이 다르면 그 비율만큼 코스 크기를 조정해 한 번 더 요청한다.
+     */
     private List<AnalyzedRoute> courseRoutes(RouteRecommendRequest req, GeoPoint start) {
-        double km = targetKm(req);
-        double side = km / 3.0;
+        double side = targetKm(req) / (3.0 * ROAD_FACTOR);
+        List<AnalyzedRoute> out = courseRoutes(start, side);
+        double ratio = medianRatio(out, req);
+        if (!out.isEmpty() && (ratio > 1.25 || ratio < 0.75)) {
+            List<AnalyzedRoute> resized = courseRoutes(start, side / ratio);
+            if (!resized.isEmpty() && Math.abs(Math.log(medianRatio(resized, req))) < Math.abs(Math.log(ratio))) {
+                out = resized;
+            }
+        }
+        return out;
+    }
+
+    private List<AnalyzedRoute> courseRoutes(GeoPoint start, double side) {
         List<Query> queries = new ArrayList<>();
         List<List<Place>> coursePoints = new ArrayList<>();
         for (double bearing : COURSE_BEARINGS) {
@@ -96,6 +114,19 @@ public class RouteRecommendationService {
             }
         }
         return out;
+    }
+
+    /** 실제 경로 길이(또는 시간) ÷ 목표의 중앙값. 시간으로 요청했으면 시간 기준으로 비교한다. */
+    static double medianRatio(List<AnalyzedRoute> routes, RouteRecommendRequest req) {
+        if (routes.isEmpty()) {
+            return 1.0;
+        }
+        boolean byTime = req.amount() != null && req.amount().unit() == RouteRecommendRequest.GoalAmount.Unit.TIME_MIN;
+        double target = byTime ? req.amount().value() : targetKm(req);
+        double[] r = routes.stream()
+                .mapToDouble(a -> (byTime ? a.route().durationS() / 60.0 : a.route().distanceM() / 1000.0) / target)
+                .sorted().toArray();
+        return r[r.length / 2];
     }
 
     static double targetKm(RouteRecommendRequest req) {
