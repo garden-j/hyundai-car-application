@@ -13,6 +13,7 @@ import com.example.application.model.ConsentRecord;
 import com.example.application.model.DriverProfile;
 import com.example.application.model.GuidanceLevel;
 import com.example.application.model.PermissionType;
+import com.example.application.model.ServiceMode;
 import com.example.application.ui.common.BaseStepFragment;
 import com.example.application.ui.common.Choices;
 import com.example.application.ui.common.Rows;
@@ -25,7 +26,7 @@ import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
 
-/** 설정 — 안내량 변경, 권한별 동의 변경·철회(일시 표시), 운전 경험 다시 입력, 연결 상태. */
+/** 설정 — 앱 버전(기본/상세), 안내량 변경, 권한별 동의 변경·철회(일시 표시), 운전 경험 다시 입력, 연결 상태. */
 public class SettingsFragment extends BaseStepFragment {
     private LinearLayout consentList;
 
@@ -45,6 +46,8 @@ public class SettingsFragment extends BaseStepFragment {
             }
         });
 
+        addServiceModeSection(list);
+
         list.addView(Choices.sectionTitle(requireContext(), "권한 (눌러서 변경)"));
         consentList = new LinearLayout(requireContext());
         consentList.setOrientation(LinearLayout.VERTICAL);
@@ -59,6 +62,27 @@ public class SettingsFragment extends BaseStepFragment {
         Rows.add(list, null, "음성 안내(TTS)", null, sl.tts.isSimulated() ? "안드로이드 기본" : "Pleos 연결");
         Rows.add(list, null, "음성 인식(STT)", null, sl.stt.isSimulated() ? "사용 불가" : "Pleos 연결");
         return null;
+    }
+
+    /** 기본 버전(외부 API 미사용) / 상세 버전(카카오·기상청 사용) 선택. 키가 없는 빌드는 기본 버전만 쓴다. */
+    private void addServiceModeSection(LinearLayout list) {
+        list.addView(Choices.sectionTitle(requireContext(), "앱 버전"));
+        ServiceLocator sl = services();
+        if (!sl.serverConfigured()) {
+            Rows.add(list, null, ServiceMode.BASIC.label(), ServiceMode.BASIC.description(), "사용 중");
+            return;
+        }
+        Set<ServiceMode> mode = EnumSet.of(sl.isDetailedMode() ? ServiceMode.DETAILED : ServiceMode.BASIC);
+        Choices.addCardGrid(list, Arrays.asList(ServiceMode.values()), mode, true, 2, () -> {
+            if (!mode.isEmpty()) {
+                boolean detailed = mode.contains(ServiceMode.DETAILED);
+                if (detailed != sl.isDetailedMode()) {
+                    sl.setDetailedMode(detailed);
+                    toast(detailed ? "상세 버전으로 바꿨어요. 다음 경로 찾기부터 적용돼요."
+                            : "기본 버전으로 바꿨어요. 외부 서비스를 쓰지 않아요.");
+                }
+            }
+        });
     }
 
     private void renderConsents() {

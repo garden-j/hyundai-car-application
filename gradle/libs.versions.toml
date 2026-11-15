@@ -1,6 +1,7 @@
 [versions]
 agp = "9.5.1"
 junit = "4.13.2"
+assertj = "3.26.3"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 appcompat = "1.6.1"
@@ -32,6 +33,7 @@ recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+assertj = { group = "org.assertj", name = "assertj-core", version.ref = "assertj" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }

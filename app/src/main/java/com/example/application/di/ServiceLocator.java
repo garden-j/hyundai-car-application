@@ -29,6 +29,7 @@ import com.example.application.data.ProfileRepository;
 import com.example.application.data.RouteRepository;
 import com.example.application.data.SessionStore;
 import com.example.application.data.WeatherRepository;
+import com.example.application.data.direct.DirectApiClient;
 import com.example.application.data.remote.ApiClient;
 import com.example.application.data.remote.RemoteRouteRepository;
 import com.example.application.BuildConfig;
@@ -49,10 +50,16 @@ public final class ServiceLocator {
     public final ProfileRepository profiles;
     public final ConsentRepository consents;
     public final SessionStore sessions;
-    public final RouteRepository routes;
-    public final PlaceRepository places;
-    public final WeatherRepository weather;
+    // 서버 사용 모드에 따라 바뀌므로 매번 services().routes 처럼 꺼내 쓴다.
+    public RouteRepository routes;
+    public PlaceRepository places;
+    public WeatherRepository weather;
     public PresetController presets;
+
+    /** 서버 주소가 설정돼 있을 때만 존재한다. */
+    private final ApiClient api;
+    private final JsonStore store;
+    private static final String KEY_DETAILED_MODE = "detailed_mode";
 
     private ServiceLocator(Context context) {
         boolean pleosVehicle = PleosAvailability.has(context, PleosAvailability.VEHICLE_SERVICE);
@@ -67,18 +74,53 @@ public final class ServiceLocator {
         tts = pleosVehicle ? new PleosTtsGateway(context) : new AndroidTtsGateway(context);
         stt = pleosVehicle ? new PleosSttGateway(context) : new AndroidSttGateway(context);
 
-        JsonStore store = new JsonStore(context, "app_data");
+        store = new JsonStore(context, "app_data");
         profiles = new ProfileRepository(store);
         consents = new ConsentRepository(store);
         sessions = new SessionStore(store);
-        // 서버 주소(local.properties의 api.baseUrl)가 있으면 서버 경로 추천·장소 검색·날씨를 쓰고,
-        // 서버가 응답하지 않으면 각 저장소가 기기 내 로직으로 대체한다.
-        ApiClient api = BuildConfig.API_BASE_URL.isEmpty() ? null : new ApiClient(BuildConfig.API_BASE_URL);
-        Log.i(TAG, "api server: " + (api == null ? "none (on-device only)" : BuildConfig.API_BASE_URL));
-        routes = api == null ? new LocalRouteRepository() : new RemoteRouteRepository(api, new LocalRouteRepository());
-        places = new PlaceRepository(api);
-        weather = new WeatherRepository(api);
+        // 상세 버전 데이터 출처: 카카오 키가 있으면 앱이 직접 호출(서버 불필요),
+        // 없고 서버 주소가 있으면 백엔드 서버, 둘 다 없으면 기본 버전만 쓸 수 있다.
+        if (DirectApiClient.canRun(BuildConfig.KAKAO_REST_API_KEY)) {
+            api = new DirectApiClient(BuildConfig.KAKAO_REST_API_KEY, BuildConfig.KMA_SERVICE_KEY);
+            Log.i(TAG, "detailed data source: direct (kakao/kma from device)");
+        } else if (!BuildConfig.API_BASE_URL.isEmpty()) {
+            api = new ApiClient(BuildConfig.API_BASE_URL);
+            Log.i(TAG, "detailed data source: server " + BuildConfig.API_BASE_URL);
+        } else {
+            api = null;
+            Log.i(TAG, "detailed data source: none (basic only)");
+        }
+        applyServerMode();
         presets = new PresetController(vehicle);
+    }
+
+    /**
+     * 기본 버전: Pleos SDK와 기기 내 로직만 사용(외부 통신 없음).
+     * 상세 버전: 카카오 길찾기·장소 검색, 기상청 날씨로 실제 도로를 분석한다.
+     * 외부 API가 응답하지 않으면 상세 버전에서도 각 저장소가 기기 내 로직으로 대체한다.
+     */
+    private void applyServerMode() {
+        ApiClient active = isDetailedMode() ? api : null;
+        routes = active == null ? new LocalRouteRepository() : new RemoteRouteRepository(active, new LocalRouteRepository());
+        places = new PlaceRepository(active);
+        weather = new WeatherRepository(active);
+        Log.i(TAG, "server mode: " + (active == null ? "basic" : "detailed"));
+    }
+
+    /** 이 빌드에 카카오 키(또는 서버 주소)가 설정돼 있어 상세 버전을 고를 수 있는지. */
+    public boolean serverConfigured() {
+        return api != null;
+    }
+
+    /** 상세 버전(서버 사용) 여부. 기본값은 기본 버전(서버 미사용). */
+    public boolean isDetailedMode() {
+        Boolean on = store.read(KEY_DETAILED_MODE, Boolean.class);
+        return api != null && Boolean.TRUE.equals(on);
+    }
+
+    public void setDetailedMode(boolean on) {
+        store.write(KEY_DETAILED_MODE, on);
+        applyServerMode();
     }
 
     public static synchronized void init(Context context) {

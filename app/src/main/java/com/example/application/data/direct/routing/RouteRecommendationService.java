@@ -1,0 +1,159 @@
+package com.example.application.data.direct.routing;
+
+import com.example.application.data.direct.common.Lists;
+
+import com.example.application.data.direct.api.dto.RouteCandidateDto;
+import com.example.application.data.direct.api.dto.RouteRecommendRequest;
+import com.example.application.data.direct.common.ExternalServiceUnavailableException;
+import com.example.application.data.direct.domain.Enums.Difficulty;
+import com.example.application.data.direct.domain.Enums.DrivingSkill;
+import com.example.application.data.direct.domain.GeoPoint;
+import com.example.application.data.direct.domain.Place;
+import com.example.application.data.direct.external.kakao.KakaoDirectionsClient;
+import com.example.application.data.direct.external.kakao.KakaoDirectionsClient.Query;
+import com.example.application.data.direct.external.kakao.KakaoRoute;
+
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+/**
+ * 연습 경로 추천.
+ * <ul>
+ *   <li>목적지가 있으면: 추천·최단거리·(유턴 회피 또는 최단시간) 조건으로 실제 경로를 받아 비교</li>
+ *   <li>목적지가 없으면: 출발지에서 돌아오는 연습 코스 3개(방향이 다른 삼각 코스)를 받아 비교</li>
+ * </ul>
+ */
+public class RouteRecommendationService {
+    private static final String TAG = "RouteRecommendationService";
+    /** 연습 목적지로 현실적인 최대 직선 거리(km). */
+    public static final double MAX_PRACTICE_KM = 100;
+    static final double[] COURSE_BEARINGS = {30, 150, 270};
+    /** 도심 도로 거리 ÷ 직선 거리의 대략적인 비율(실측 약 1.5~1.7). */
+    static final double ROAD_FACTOR = 1.6;
+
+    private final KakaoDirectionsClient directions;
+
+    public RouteRecommendationService(KakaoDirectionsClient directions) {
+        this.directions = directions;
+    }
+
+    public List<RouteCandidateDto> recommend(RouteRecommendRequest req) {
+        if (!directions.available()) {
+            throw new ExternalServiceUnavailableException("ROUTING_UNAVAILABLE", "카카오 REST API 키가 설정되지 않았어요");
+        }
+        GeoPoint start = req.start();
+        List<AnalyzedRoute> analyzed = req.hasDestination() ? destinationRoutes(req, start) : courseRoutes(req, start);
+        if (analyzed.isEmpty()) {
+            throw new ExternalServiceUnavailableException("ROUTING_NO_RESULT", "조건에 맞는 경로를 찾지 못했어요");
+        }
+        return RouteSelector.select(analyzed, req, start);
+    }
+
+    private List<AnalyzedRoute> destinationRoutes(RouteRecommendRequest req, GeoPoint start) {
+        Place dest = req.destination().destination();
+        double km = start.distanceKmTo(dest.point());
+        if (km > MAX_PRACTICE_KM) {
+            throw new IllegalArgumentException(String.format(
+                    "목적지가 출발지에서 약 %.0fkm 떨어져 있어요. 출발지를 확인해 주세요.", km));
+        }
+        boolean round = req.destination().roundTrip();
+        GeoPoint target = round ? start : dest.point();
+        List<GeoPoint> via = round ? Lists.of(dest.point()) : Lists.of();
+        Place naviDest = round ? new Place("출발지", "", start) : dest;
+        List<Place> naviWaypoints = round ? Lists.of(dest) : Lists.of();
+        boolean wantsUTurn = req.skillsOrEmpty().contains(DrivingSkill.U_TURN);
+
+        List<Query> queries = Lists.of(
+                new Query(start, target, via, "RECOMMEND", null, true),
+                new Query(start, target, via, "DISTANCE", null, false),
+                // 유턴 연습이 목표가 아니면 유턴 없는 길도 후보로(초보에게 부담 적음)
+                wantsUTurn ? new Query(start, target, via, "TIME", null, false)
+                        : new Query(start, target, via, "RECOMMEND", "uturn", false));
+        return runAll(queries, r -> AnalyzedRoute.of(r, naviWaypoints, naviDest));
+    }
+
+    /**
+     * 연습 코스: 출발지에서 세 방향으로 삼각 코스를 만들어 돌아온다.
+     * 실제 도로는 직선보다 길기 때문에 도로 계수로 한 변 길이를 줄이고,
+     * 결과가 요청한 거리·시간과 많이 다르면 그 비율만큼 코스 크기를 조정해 한 번 더 요청한다.
+     */
+    private List<AnalyzedRoute> courseRoutes(RouteRecommendRequest req, GeoPoint start) {
+        double side = targetKm(req) / (3.0 * ROAD_FACTOR);
+        List<AnalyzedRoute> out = courseRoutes(start, side);
+        double ratio = medianRatio(out, req);
+        if (!out.isEmpty() && (ratio > 1.25 || ratio < 0.75)) {
+            List<AnalyzedRoute> resized = courseRoutes(start, side / ratio);
+            if (!resized.isEmpty() && Math.abs(Math.log(medianRatio(resized, req))) < Math.abs(Math.log(ratio))) {
+                out = resized;
+            }
+        }
+        return out;
+    }
+
+    private List<AnalyzedRoute> courseRoutes(GeoPoint start, double side) {
+        List<Query> queries = new ArrayList<>();
+        List<List<Place>> coursePoints = new ArrayList<>();
+        for (double bearing : COURSE_BEARINGS) {
+            GeoPoint p1 = start.offsetKm(side * Math.cos(Math.toRadians(bearing)), side * Math.sin(Math.toRadians(bearing)));
+            GeoPoint p2 = start.offsetKm(side * Math.cos(Math.toRadians(bearing + 60)), side * Math.sin(Math.toRadians(bearing + 60)));
+            queries.add(new Query(start, start, Lists.of(p1, p2), "RECOMMEND", null, false));
+            coursePoints.add(Lists.of(new Place("연습 코스 지점 1", "", p1), new Place("연습 코스 지점 2", "", p2)));
+        }
+        Place home = new Place("출발지", "", start);
+        List<AnalyzedRoute> out = new ArrayList<>();
+        List<CompletableFuture<List<KakaoRoute>>> futures = queries.stream()
+                .map(q -> CompletableFuture.supplyAsync(() -> safe(q))).collect(java.util.stream.Collectors.toList());
+        for (int i = 0; i < futures.size(); i++) {
+            for (KakaoRoute r : futures.get(i).join()) {
+                out.add(AnalyzedRoute.of(r, coursePoints.get(i), home));
+            }
+        }
+        return out;
+    }
+
+    /** 실제 경로 길이(또는 시간) ÷ 목표의 중앙값. 시간으로 요청했으면 시간 기준으로 비교한다. */
+    static double medianRatio(List<AnalyzedRoute> routes, RouteRecommendRequest req) {
+        if (routes.isEmpty()) {
+            return 1.0;
+        }
+        boolean byTime = req.amount() != null && req.amount().unit() == RouteRecommendRequest.GoalAmount.Unit.TIME_MIN;
+        double target = byTime ? req.amount().value() : targetKm(req);
+        double[] r = routes.stream()
+                .mapToDouble(a -> (byTime ? a.route().durationS() / 60.0 : a.route().distanceM() / 1000.0) / target)
+                .sorted().toArray();
+        return r[r.length / 2];
+    }
+
+    static double targetKm(RouteRecommendRequest req) {
+        if (req.amount() != null) {
+            return Math.max(1.0, req.amount().estimatedKm());
+        }
+        Difficulty d = req.effectiveDifficulty();
+        return d == Difficulty.EASY ? 4.0 : d == Difficulty.CHALLENGE ? 8.0 : 6.0;
+    }
+
+    private List<AnalyzedRoute> runAll(List<Query> queries, Function<KakaoRoute, AnalyzedRoute> analyze) {
+        List<CompletableFuture<List<KakaoRoute>>> futures = queries.stream()
+                .map(q -> CompletableFuture.supplyAsync(() -> safe(q))).collect(java.util.stream.Collectors.toList());
+        List<AnalyzedRoute> out = new ArrayList<>();
+        for (CompletableFuture<List<KakaoRoute>> f : futures) {
+            for (KakaoRoute r : f.join()) {
+                out.add(analyze.apply(r));
+            }
+        }
+        return out;
+    }
+
+    /** 일부 조건이 실패해도 나머지 후보로 추천할 수 있게 개별 실패는 무시한다. */
+    private List<KakaoRoute> safe(Query q) {
+        try {
+            return directions.directions(q);
+        } catch (ExternalServiceUnavailableException e) {
+            android.util.Log.w(TAG, String.format("directions query failed (%s %s): %s", q.priority(), q.avoid(), e.getMessage()));
+            return Lists.of();
+        }
+    }
+}

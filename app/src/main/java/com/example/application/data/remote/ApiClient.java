@@ -32,7 +32,7 @@ public class ApiClient {
         public final int status;
         public final String code;
 
-        ApiException(int status, String code, String message) {
+        public ApiException(int status, String code, String message) {
             super(message);
             this.status = status;
             this.code = code;
@@ -42,6 +42,11 @@ public class ApiClient {
     private final String baseUrl;
     private final Gson gson = new Gson();
     private final ExecutorService io = Executors.newFixedThreadPool(2);
+
+    /** 하위 클래스(앱 내장 구현 {@code DirectApiClient})용. */
+    protected ApiClient() {
+        this.baseUrl = "";
+    }
 
     public ApiClient(String baseUrl) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

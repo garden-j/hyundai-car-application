@@ -1,0 +1,43 @@
+{
+  "trans_id": "test",
+  "routes": [
+    {
+      "result_code": 0,
+      "result_msg": "길찾기 성공",
+      "summary": {
+        "origin": {"name": "", "x": 127.0300, "y": 37.4920},
+        "destination": {"name": "", "x": 127.0461, "y": 37.4993},
+        "waypoints": [],
+        "priority": "RECOMMEND",
+        "fare": {"taxi": 7000, "toll": 0},
+        "distance": 4300,
+        "duration": 780
+      },
+      "sections": [
+        {
+          "distance": 4300,
+          "duration": 780,
+          "roads": [
+            {"name": "강남대로", "distance": 2500, "duration": 400, "traffic_speed": 30.0, "traffic_state": 4,
+             "vertexes": [127.0300, 37.4920, 127.0320, 37.4950, 127.0350, 37.4970]},
+            {"name": "역삼로", "distance": 1800, "duration": 380, "traffic_speed": 12.0, "traffic_state": 1,
+             "vertexes": [127.0350, 37.4970, 127.0400, 37.4980, 127.0461, 37.4993]}
+          ],
+          "guides": [
+            {"name": "출발지", "x": 127.0300, "y": 37.4920, "distance": 0, "duration": 0, "type": 100, "guidance": "출발지", "road_index": 0},
+            {"name": "강남역사거리", "x": 127.0320, "y": 37.4950, "distance": 800, "duration": 120, "type": 1, "guidance": "좌회전", "road_index": 0},
+            {"name": "", "x": 127.0350, "y": 37.4970, "distance": 900, "duration": 150, "type": 3, "guidance": "유턴", "road_index": 1},
+            {"name": "역삼로터리", "x": 127.0400, "y": 37.4980, "distance": 1200, "duration": 250, "type": 72, "guidance": "회전 교차로에서 오른쪽 3시 방향", "road_index": 1},
+            {"name": "", "x": 127.0430, "y": 37.4985, "distance": 700, "duration": 140, "type": 6, "guidance": "오른쪽 방향", "road_index": 1},
+            {"name": "목적지", "x": 127.0461, "y": 37.4993, "distance": 700, "duration": 120, "type": 101, "guidance": "목적지", "road_index": -1}
+          ]
+        }
+      ]
+    },
+    {
+      "result_code": 104,
+      "result_msg": "출발지와 도착지가 5 m 이내로 설정된 경우 경로를 탐색할 수 없음",
+      "summary": {"distance": 0, "duration": 0}
+    }
+  ]
+}
