@@ -17,18 +17,44 @@
 adb install -r "apk/차근차근_차차_release.apk"
 ```
 
-## 현재 구현 범위 (2단계: 출발 전 흐름)
+## 구현 범위
+
+출발 전(Pre-Drive) → 주행 중(On-Driving) → 주행 후(Post-Drive) 전체 흐름이 Pleos Connect 에뮬레이터에서 동작합니다. 연습 목적의 **연습 주행**과, 연습 없이 이동할 때 쓰는 **일반 주행**(목적지 → 준비 체크리스트 → 차량 환경 확인 → 출발)을 함께 제공합니다.
+
+### 출발 전
 
 | 흐름 | 화면 | 사용 SDK |
 |---|---|---|
 | 온보딩 | 권한 동의(목적별) → 비동의 시 기능 제한 안내 → 운전 경력 → 어려운 점 → 안내량 | – |
-| 홈 | 오늘의 추천 연습, 차량 상태, 주행 가능 거리, 실내 온도 | Vehicle |
+| 홈 | 오늘의 추천 연습, 일반 주행, 차량 상태, 주행 가능 거리, 오늘의 운전 지식 | Vehicle |
 | 연습 설정 | 목표 유형(복수) → 선택한 유형의 세부 설정(기술 / 거리·시간 / 목적지 / 주행 환경) → 난이도·지역 익숙함 → 긴장도·이유 | STT(말로 답하기) |
 | 경로 추천 | 후보 3개(넓은 길 / 최단 / 목표 연습), 추천 이유·난이도 점수 근거, 선택 경로를 내비에 전달 | FusedLocation, NaviHelper |
 | 복잡 구간 브리핑 | 주행 순서대로 구간 목록 + 경로 미리보기 + 음성 브리핑, 다시 듣기 | TTS |
 | 준비 체크리스트 | 안전벨트·문·연료/배터리 자동 확인, 나머지는 직접 확인, 필수 미완료 시 출발 차단 | Vehicle |
 | 연습 모드 프리셋 | 목표·날씨·시간 기반 4종 추천 → 항목 수정 → 적용 전 설정 저장 → 일괄 적용 → 실패 항목 안내 | Vehicle(HVAC·Window·SteeringWheel) |
-| 출발 | 설정 요약(주행 중 화면은 다음 단계) | – |
+| 출발 | 설정 요약 확인 후 '주행 시작'을 눌러야 내비 안내 시작 | NaviHelper |
+
+### 주행 중
+
+| 기능 | 내용 | 사용 SDK |
+|---|---|---|
+| 주행 중 화면 | 다음 회전·남은 거리·방금 나온 안내를 큰 글씨로 표시. 내비 화면이 앞에 있어도 포그라운드 서비스가 안내를 이어 감 | NaviHelper |
+| 회전·주의 지점 코칭 | 내비 TBT·주의 지점 이벤트에 초보자 요령을 덧붙임. 안내 수준(최소·표준·적극)별 시점(300/500m)·대상·문장 길이, 같은 지점은 한 번만 | NaviHelper, TTS |
+| 안내 우선순위 대기열 | 안전 > 회전 > 상황 알림 > Relax > 격려. 안전 안내만 끼어들기, 대기 최대 2개, 유효 시간이 지난 안내는 버림 | TTS |
+| Relax | '긴장돼요' → 주행 중 짧은 진정, 기어 P 정차 중 호흡 안내. 어려운 구간을 연달아 지나면 먼저 한마디 | Vehicle(기어), TTS |
+| 휴식 | "잠시 쉬어 갈까요?" → 근처 주차장을 경유지로 추가(답이 없으면 경로 유지) | STT, FusedLocation, NaviHelper |
+| 주유·충전 | 잔량·주행 가능 거리 주기 확인 → 부족 시 알림, 가까운 주유소/충전소 추천 → 경유지 추가 → 도착 후 단계별 절차 | Vehicle, NaviHelper |
+| 환경 변화 | 와이퍼(우천)·전조등(야간·터널) 감지 → 주의 안내, '편안한 길' 재탐색 제안 | Vehicle, NaviHelper |
+
+### 주행 후 · 홈 메뉴
+
+| 기능 | 내용 | 사용 SDK |
+|---|---|---|
+| 격려 | 이번 주행에서 겪은 회전·합류 등을 연습 목표와 대조해 달성 여부, 격려 음성, 다음 연습 추천 | TTS |
+| 차량 설정 복원 | 연습 전·현재 설정 비교 → 확인 후 바뀐 항목만 복원 | Vehicle |
+| 운전 지식 | 5개 분야 핵심 지식, 목표·어려운 상황 맞춤 추천, 음성 설명 | TTS |
+| 차량 도움 | 차량 상태(경고등·도어·엔진오일·브레이크액·주행 가능 거리), '출발이 안 돼요' 점검, 자주 묻는 기능 음성 검색 | Vehicle, STT, TTS |
+| 설정 | 앱 버전(기본/상세), 주의·Relax·격려 안내 수준, 권한 동의·철회 | – |
 
 긴장도 4 이상이면 **난이도를 한 단계 낮춰 경로를 추천**하고 **안내 수준을 한 단계 올립니다**(유저플로우 반영).
 
@@ -86,7 +112,7 @@ adb install -r "apk/차근차근_차차_release.apk"
 ### 테스트
 
 ```bash
-./gradlew :app:testDebugUnitTest            # 단위 테스트 54개(도메인 로직 + 상세 버전 경로 분석)
+./gradlew :app:testDebugUnitTest            # 단위 테스트 77개(도메인 로직 + 상세 버전 경로 분석)
 ./gradlew :app:connectedDebugAndroidTest    # Pleos 에뮬레이터 연동·UI 스모크 테스트 3개
 ```
 
@@ -98,16 +124,19 @@ app/src/main/java/com/example/application/
 ├── di/ServiceLocator.java             # 의존성 구성: Pleos 서비스 유무에 따라 실제/가상 구현 선택
 ├── core/
 │   ├── pleos/                         # Pleos SDK 래퍼(인터페이스 + Pleos 구현 + Fake 구현)
-│   │   ├── vehicle/  navi/  location/  voice/
+│   │   ├── vehicle/  navi/  location/  voice/   # navi/DriveGuideService: 주행 중 포그라운드 안내
 │   ├── vehiclecontrol/                # 프리셋 적용(적용 전 저장 → 일괄 적용 → 결과 보고)
 │   └── Callback · MainThread
 ├── domain/                            # Android 의존 없는 규칙(단위 테스트 대상)
 │   ├── SetupFlow                      # 단계 순서·검증
 │   ├── RouteCandidateGenerator · RouteDifficultyScorer · BriefingGenerator
 │   ├── PresetRecommender · PresetTargets · ChecklistEvaluator
+│   ├── DriveGuide · GuidanceQueue · EnvironmentWatch · RelaxGuide · FuelGuide  # 주행 중
+│   ├── Encouragement · DriveStats                                           # 주행 후
+│   ├── StartDiagnosis · VehicleFaq · KnowledgeCatalog                       # 차량 도움·운전 지식
 │   └── VoiceCommandParser · VoiceVocabulary · TodayRecommendation
 ├── data/                              # 로컬 저장(프로필·동의 이력·세션), 경로/장소/날씨 저장소
 │   └── direct/                        # 상세 버전: 카카오·기상청 직접 호출 + 경로 분석(백엔드와 같은 로직)
 ├── model/                             # 도메인 모델
-└── ui/                                # 화면(Fragment): onboarding · home · setup · depart · settings
+└── ui/                                # 화면(Fragment): onboarding · home · setup · depart · drive · help · settings
 ```
